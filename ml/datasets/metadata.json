@@ -1,0 +1,42 @@
+{
+  "dataset_name": "CIC-IDS-Benchmark-Privacy-Preserving",
+  "total_samples": 12000,
+  "test_eval_samples": 2400,
+  "client_1_samples": 3419,
+  "client_2_samples": 3072,
+  "client_3_samples": 3109,
+  "features": [
+    "flow_duration",
+    "total_fwd_packets",
+    "total_bwd_packets",
+    "total_fwd_bytes",
+    "total_bwd_bytes",
+    "fwd_packet_length_mean",
+    "bwd_packet_length_mean",
+    "flow_bytes_per_sec",
+    "flow_packets_per_sec",
+    "flow_iat_mean",
+    "fwd_iat_mean",
+    "bwd_iat_mean",
+    "syn_flag_count",
+    "rst_flag_count",
+    "psh_flag_count",
+    "ack_flag_count",
+    "dest_port",
+    "packet_length_variance"
+  ],
+  "classes": [
+    "BENIGN",
+    "Brute Force",
+    "DDoS",
+    "Port Scan",
+    "Botnet"
+  ],
+  "class_counts": {
+    "BENIGN": 7246,
+    "Brute Force": 1383,
+    "DDoS": 1383,
+    "Port Scan": 1296,
+    "Botnet": 692
+  }
+}

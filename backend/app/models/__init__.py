@@ -1,0 +1,31 @@
+from backend.app.models.all_models import (
+    User,
+    Client,
+    SecurityEvent,
+    Detection,
+    Alert,
+    Incident,
+    ThreatIndicator,
+    TrainingRound,
+    ModelVersion,
+    ClientModelUpdate,
+    PrivacyEvent,
+    AuditLog,
+    SystemMetric,
+)
+
+__all__ = [
+    "User",
+    "Client",
+    "SecurityEvent",
+    "Detection",
+    "Alert",
+    "Incident",
+    "ThreatIndicator",
+    "TrainingRound",
+    "ModelVersion",
+    "ClientModelUpdate",
+    "PrivacyEvent",
+    "AuditLog",
+    "SystemMetric",
+]

@@ -1,0 +1,83 @@
+{
+  "model_version": "global-v2",
+  "algorithm": "RandomForestClassifier",
+  "accuracy": 0.9729,
+  "precision": 0.9729,
+  "recall": 0.9729,
+  "f1": 0.9726,
+  "loss": 0.2799,
+  "confusion_matrix": [
+    [
+      1407,
+      2,
+      10,
+      12,
+      10
+    ],
+    [
+      0,
+      148,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      264,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      295,
+      0
+    ],
+    [
+      31,
+      0,
+      0,
+      0,
+      221
+    ]
+  ],
+  "sample_count_test": 2400,
+  "features": [
+    "flow_duration",
+    "total_fwd_packets",
+    "total_bwd_packets",
+    "total_fwd_bytes",
+    "total_bwd_bytes",
+    "fwd_packet_length_mean",
+    "bwd_packet_length_mean",
+    "flow_bytes_per_sec",
+    "flow_packets_per_sec",
+    "flow_iat_mean",
+    "fwd_iat_mean",
+    "bwd_iat_mean",
+    "syn_flag_count",
+    "rst_flag_count",
+    "psh_flag_count",
+    "ack_flag_count",
+    "dest_port",
+    "packet_length_variance"
+  ],
+  "differential_privacy": {
+    "is_private": true,
+    "epsilon": 137.0318,
+    "rdp_epsilon": 623.0259,
+    "optimal_alpha": 1.5,
+    "delta": 1e-05,
+    "noise_multiplier": 0.05,
+    "privacy_tier": "WEAK PRIVACY (High Epsilon)",
+    "num_rounds": 2,
+    "max_budget_epsilon": 10.0,
+    "budget_consumed_pct": 100.0,
+    "budget_remaining": 0.0,
+    "description": "Differential Privacy enforced: (\u03b5=137.03, \u03b4=1e-05, RDP \u03b5*=623.03 at \u03b1=1.5) across 2 round(s).",
+    "clip_threshold": 10.0,
+    "total_samples": 9600
+  }
+}

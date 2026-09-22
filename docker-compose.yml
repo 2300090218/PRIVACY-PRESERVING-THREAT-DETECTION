@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: threat_detection_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: threat_detection
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: threat_detection_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@postgres:5432/threat_detection
+      - SECRET_KEY=threat-detection-super-secret-key-production-32chars
+      - JWT_SECRET=threat-detection-jwt-secret-production-32chars
+      - PRIVACY_SALT=privacy-salt-isolated-production-salt-hmac
+      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
+      - WEBSOCKET_URL=ws://127.0.0.1:8000/ws
+      - OPERATIONAL_MODE=LIVE
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ml/models:/app/ml/models
+      - ./ml/datasets:/app/ml/datasets
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: threat_detection_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

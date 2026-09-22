@@ -1,0 +1,320 @@
+INFO:     Started server process [16524]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[ModelManager] Loaded active model 'global-v1' from ./ml/models\baseline_rf.joblib
+[Client client-dmz-01] Loaded private dataset: 3419 samples (strictly local)
+[Client client-finance-02] Loaded private dataset: 3072 samples (strictly local)
+[Client client-cloud-03] Loaded private dataset: 3109 samples (strictly local)
+[FL Server] Loaded held-out evaluation dataset: 2400 samples
+[Startup] Initializing Database schema...
+[Startup] Platform initialization complete.
+INFO:     127.0.0.1:63553 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63603 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63636 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "OPTIONS /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51799 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58514 - "OPTIONS /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "OPTIONS /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "OPTIONS /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "OPTIONS /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "OPTIONS /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "OPTIONS /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60219 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:52100 - "OPTIONS /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "OPTIONS /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "OPTIONS /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "OPTIONS /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "OPTIONS /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "OPTIONS /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "OPTIONS /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "OPTIONS /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "OPTIONS /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53000 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58022 - "OPTIONS /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "OPTIONS /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "OPTIONS /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "OPTIONS /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "OPTIONS /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "OPTIONS /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "OPTIONS /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "OPTIONS /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "OPTIONS /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58514 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51591 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52100 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58022 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49190 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59231 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61438 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58357 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "OPTIONS /api/test/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "POST /api/test/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "OPTIONS /api/test/continuous/start?interval=3 HTTP/1.1" 200 OK
+[ContinuousMonitor] Started monitoring loop (interval: 3.0s)
+INFO:     127.0.0.1:64059 - "POST /api/test/continuous/start?interval=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64059 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64059 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57352 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64059 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51196 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60610 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51196 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56465 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60610 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57352 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64059 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51196 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "OPTIONS /api/test/continuous/stop HTTP/1.1" 200 OK
+[ContinuousMonitor] Monitoring loop stopped.
+INFO:     127.0.0.1:63209 - "POST /api/test/continuous/stop HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53065 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63923 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61288 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61288 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63923 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61054 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53065 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55321 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64143 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:53065 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63974 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:57140 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63432 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64690 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:56745 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57140 - "OPTIONS /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53799 - "OPTIONS /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54910 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53065 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51474 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:54910 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58202 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54706 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:63209 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61146 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51154 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:61146 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61146 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63161 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:61146 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61146 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61146 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61146 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63105 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61818 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:59615 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63105 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55475 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63124 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:59420 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56444 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56444 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "POST /api/test/run HTTP/1.1" 200 OK
+[ContinuousMonitor] Started monitoring loop (interval: 3.0s)
+INFO:     127.0.0.1:59615 - "POST /api/test/continuous/start?interval=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53468 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53468 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62570 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59040 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:56973 - "GET /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56973 - "GET /api/detections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56973 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53468 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62134 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:62570 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59615 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60163 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:62570 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61137 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:62570 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51002 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:62570 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62570 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62570 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51838 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:54529 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56127 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49673 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49726 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:60391 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60391 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60391 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51987 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60391 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51987 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51127 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60391 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51127 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60391 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54529 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51987 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60017 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51636 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49740 - "WebSocket /ws" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+[ContinuousMonitor] Monitoring loop stopped.
+INFO:     127.0.0.1:49673 - "POST /api/test/continuous/stop HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63335 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64830 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53348 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64916 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53348 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64830 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64916 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:63335 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62946 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62680 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59278 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60523 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59278 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49356 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62680 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62946 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60523 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49673 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "POST /api/test/run HTTP/1.1" 200 OK
+[ContinuousMonitor] Started monitoring loop (interval: 3.0s)
+INFO:     127.0.0.1:59791 - "POST /api/test/continuous/start?interval=3 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+[ContinuousMonitor] Monitoring loop stopped.
+INFO:     127.0.0.1:59791 - "POST /api/test/continuous/stop HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59212 - "GET /api/metrics/training HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59228 - "GET /api/detections?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58776 - "GET /api/metrics/detection HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58919 - "GET /api/alerts HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58776 - "GET /api/federated/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58919 - "GET /api/privacy/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61329 - "GET /api/events/recent?limit=10 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59228 - "GET /api/clients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59212 - "GET /api/incidents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58776 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59791 - "GET /api/test/continuous/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58776 - "GET /api/health HTTP/1.1" 200 OK
