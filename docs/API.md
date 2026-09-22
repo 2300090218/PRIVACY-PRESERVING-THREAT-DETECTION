@@ -1,334 +1,260 @@
-# REST & WebSocket API Specification
+# Privacy-Preserving Threat Detection Platform - API Documentation
 
-## 1. Authentication & Security Headers
+## Base URLs
+- **Central API Service**: `http://127.0.0.1:8000` or `https://central-server.example`
+- **Version 1 Base Path**: `/api/v1`
+- **Interactive OpenAPI Documentation**: `http://127.0.0.1:8000/docs`
+- **ReDoc Documentation**: `http://127.0.0.1:8000/redoc`
 
-All protected endpoints require an `Authorization` header containing a valid JSON Web Token (JWT):
-```http
-Authorization: Bearer <JWT_ACCESS_TOKEN>
+---
+
+## Authentication & Authorization
+
+### 1. User Authentication (JWT)
+Analysts and administrators authenticate using standard OAuth2 Bearer Tokens.
+
+#### `POST /api/v1/auth/login`
+- **Request Body**:
+```json
+{
+  "username": "admin",
+  "password": "AdminPass123!"
+}
+```
+- **Response** (`200 OK`):
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsIn...",
+  "token_type": "bearer",
+  "expires_in": 86400,
+  "role": "ADMIN",
+  "organization_id": "org_enterprise_a"
+}
 ```
 
-Authorized telemetry client agents may authenticate using their unique Client Secret header:
-```http
-X-Client-ID: client-dmz-01
-X-Client-Key: <PROVISIONED_CLIENT_SECRET>
+#### `GET /api/v1/auth/me`
+- **Headers**: `Authorization: Bearer <token>`
+- **Response** (`200 OK`):
+```json
+{
+  "user_id": 1,
+  "username": "admin",
+  "email": "security-admin@threat-detection.local",
+  "role": "ADMIN",
+  "organization_id": "org_enterprise_a"
+}
 ```
 
-### Roles & Permissions Matrix
-| Role | Allowed Endpoints | Description |
-| :--- | :--- | :--- |
-| `ADMIN` | All endpoints | Complete system administration, model promotion, user provisioning |
-| `SECURITY_ANALYST` | Events, Detections, Alerts, Incidents, Privacy, Audit, Metrics | Triage, alert resolution, incident investigation |
-| `CLIENT` | `POST /api/events`, `POST /api/federated/update`, `POST /api/clients/heartbeat` | Edge telemetry sensor & federated trainer |
-| `VIEWER` | Read-only access to `/api/status`, `/api/metrics`, `/api/health` | Read-only dashboards and monitoring |
-
 ---
 
-## 2. API Endpoints
+## Organizations & Multi-Tenancy
 
-### 2.1 Authentication (`/api/auth`)
-
-#### `POST /api/auth/login`
-Authenticates a user and issues an access token.
+### `POST /api/v1/organizations/register`
+Registers a new enterprise tenant with boundary isolation.
 - **Request Body**:
-  ```json
-  {
-    "username": "admin",
-    "password": "AdminPass123!"
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
-    "token_type": "bearer",
-    "user": {
-      "id": 1,
-      "username": "admin",
-      "email": "admin@threatguard.internal",
-      "role": "ADMIN"
-    }
-  }
-  ```
+```json
+{
+  "org_id": "org_finance_b",
+  "name": "Financial Services Group B",
+  "contact_email": "soc@finance-b.internal"
+}
+```
+- **Response** (`201 Created`):
+```json
+{
+  "id": 2,
+  "org_id": "org_finance_b",
+  "name": "Financial Services Group B",
+  "status": "ACTIVE",
+  "contact_email": "soc@finance-b.internal",
+  "created_at": "2026-09-22T08:00:00Z",
+  "active_agents": 1,
+  "total_events": 0,
+  "total_detections": 0
+}
+```
 
-#### `GET /api/auth/me`
-Retrieves currently authenticated user metadata.
-- **Response `200 OK`**:
-  ```json
-  {
-    "id": 1,
-    "username": "admin",
-    "email": "admin@threatguard.internal",
-    "role": "ADMIN",
-    "is_active": true
-  }
-  ```
+### `GET /api/v1/organizations`
+Returns all registered organizations and their telemetry statistics.
 
 ---
 
-### 2.2 Security Events (`/api/events`)
+## Edge Agents & Credentials
 
-#### `POST /api/events`
-Ingests an authorized telemetry event. Triggers the privacy, rule, ML, risk, and alert pipelines.
+### `POST /api/v1/agents/register`
+Registers a new local edge agent within an organization. Returns a unique HMAC API key for authenticated ingestion.
 - **Request Body**:
-  ```json
-  {
-    "event_id": "evt-7729-ab4",
-    "client_id": "client-dmz-01",
-    "event_type": "NETWORK_FLOW",
-    "source": "192.168.1.105",
-    "destination": "10.0.0.15",
-    "protocol": "TCP",
-    "features": {
-      "duration_sec": 12.5,
-      "src_bytes": 1024,
-      "dst_bytes": 4096,
-      "src_packets": 15,
-      "dst_packets": 20,
-      "byte_rate": 409.6,
-      "packet_rate": 2.8,
-      "failed_logins": 0,
-      "destination_port": 443,
-      "protocol_num": 6,
-      "flag_urg_count": 0,
-      "flag_syn_count": 1,
-      "flag_rst_count": 0,
-      "flag_ack_count": 1,
-      "flag_fin_count": 0,
-      "is_sensitive_port": 0,
-      "payload_entropy": 4.12,
-      "connection_count_1m": 4
-    },
-    "metadata": {
-      "environment": "DMZ",
-      "auth_user": "operator@threatguard.internal"
-    }
-  }
-  ```
-- **Response `201 Created`**:
-  ```json
-  {
-    "event_id": "evt-7729-ab4",
-    "status": "PROCESSED",
-    "privacy_applied": true,
-    "sanitized_source": "IP-3F9A1B",
-    "detection": {
-      "detection_id": "det-9912-dfa",
-      "prediction": "MALICIOUS",
-      "threat_type": "Brute Force",
-      "severity": "HIGH",
-      "confidence": 0.942,
-      "risk_score": 0.82
-    },
-    "alert_created": true,
-    "processing_latency_ms": 14.8
-  }
-  ```
+```json
+{
+  "agent_id": "agent-dmz-01",
+  "organization_id": "org_enterprise_a",
+  "name": "DMZ Gateway Edge Sensor",
+  "version": "1.0.0"
+}
+```
+- **Response** (`201 Created`):
+```json
+{
+  "agent_id": "agent-dmz-01",
+  "organization_id": "org_enterprise_a",
+  "name": "DMZ Gateway Edge Sensor",
+  "status": "ONLINE",
+  "api_key": "agent_key_4a91f...",
+  "created_at": "2026-09-22T08:00:00Z"
+}
+```
 
-#### `GET /api/events`
-Lists paginated security events.
-- **Query Params**: `page` (default 1), `limit` (default 50), `severity`, `threat_type`, `client_id`
+### `GET /api/v1/agents`
+Lists edge agents, optionally filtered by `organization_id`.
 
-#### `GET /api/events/recent`
-Retrieves the 20 most recent ingested events for quick display.
+### `GET /api/v1/agents/{agent_id}`
+Returns status and last-seen telemetry timestamp for a specific edge agent.
 
 ---
 
-### 2.3 Threat Detections (`/api/detections`)
+## Protected Event Ingestion & Second Safety Boundary
 
-#### `GET /api/detections`
-Lists all detected threats.
-- **Query Params**: `threat_type`, `severity`, `limit`, `offset`
-- **Response `200 OK`**:
-  ```json
-  [
-    {
-      "detection_id": "det-9912-dfa",
-      "event_id": "evt-7729-ab4",
-      "timestamp": "2026-09-12T10:30:15Z",
-      "threat_type": "Brute Force",
-      "prediction": "MALICIOUS",
-      "severity": "HIGH",
-      "confidence": 0.942,
-      "risk_score": 0.82,
-      "model_version": "global-v1",
-      "detection_source": "HYBRID_ML_RULE"
-    }
-  ]
-  ```
+### `POST /api/v1/events`
+Ingests a **minimized, protected event** from an edge organization agent.
 
----
+> **CRITICAL SECURITY RULE**: The Central Server enforces a **Server-Side Second Safety Boundary**.
+> If any prohibited raw sensitive field (`username`, `source_ip`, `exact_location`, `raw_device_id`, `password`) appears in the payload, the server **rejects the request immediately** with `400 Bad Request`, logs an audit violation, and refuses persistence.
 
-### 2.4 Alerts (`/api/alerts`)
-
-#### `GET /api/alerts`
-Retrieves active and historic security alerts.
-- **Query Params**: `status` (`NEW`, `ACKNOWLEDGED`, `RESOLVED`), `severity`, `limit`
-
-#### `POST /api/alerts/{id}/acknowledge`
-Marks an alert as acknowledged by a security analyst.
-- **Response `200 OK`**:
-  ```json
-  {
-    "alert_id": "alt-5512-99",
-    "status": "ACKNOWLEDGED",
-    "acknowledged_by": "admin",
-    "acknowledged_at": "2026-09-12T10:35:00Z"
+- **Headers**:
+  - `X-API-Key`: `<agent_api_key>`
+  - `X-Organization-ID`: `org_enterprise_a`
+  - `X-Agent-ID`: `agent-dmz-01`
+- **Request Body (Protected Representation Only)**:
+```json
+{
+  "event_id": "evt_9918a2bc",
+  "organization_id": "org_enterprise_a",
+  "agent_id": "agent-dmz-01",
+  "timestamp": "2026-09-22T10:15:00Z",
+  "event_type": "failed_login",
+  "telemetry_source": "TEST",
+  "source": "DEV-8F31",
+  "device_id": "DEV-8F31",
+  "destination_port": 22,
+  "protocol": "SSH",
+  "failed_attempts": 6,
+  "attack_indicators": ["BRUTE_FORCE_PATTERN"],
+  "privacy_metadata": {
+    "policy_version": "1.0.0",
+    "removed_fields": ["username", "source_ip", "location"],
+    "pseudonymized_fields": ["device_id->DEV-8F31"]
   }
-  ```
-
-#### `POST /api/alerts/{id}/resolve`
-Resolves an alert with closure notes.
-
----
-
-### 2.5 Incidents (`/api/incidents`)
-
-#### `GET /api/incidents`
-Lists correlated incident dossiers.
-
-#### `POST /api/incidents`
-Creates an incident dossier clustering multiple related alerts.
-
-#### `PATCH /api/incidents/{id}`
-Updates incident severity or status (`OPEN`, `INVESTIGATING`, `CONTAINED`, `RESOLVED`).
-
----
-
-### 2.6 Clients (`/api/clients`)
-
-#### `POST /api/clients/register`
-Registers a new edge telemetry sensor / federated client.
-- **Request Body**:
-  ```json
-  {
-    "client_id": "client-k8s-04",
-    "name": "Production EKS Cluster Ingress",
-    "ip_address": "10.200.4.12",
-    "environment": "CLOUD_VPC"
-  }
-  ```
-
-#### `GET /api/clients`
-Lists all registered clients and their live statuses (`ONLINE`, `OFFLINE`, `TRAINING`, `ERROR`).
-
----
-
-### 2.7 Federated Learning (`/api/federated`)
-
-#### `GET /api/federated/status`
-Returns real-time federated orchestrator state.
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "IDLE",
-    "current_round": 1,
-    "total_rounds": 5,
-    "active_clients": 3,
-    "global_model_version": "global-v1",
-    "last_accuracy": 0.9729,
-    "last_f1": 0.9726,
-    "aggregation_method": "FedAvg"
-  }
-  ```
-
-#### `POST /api/federated/start`
-Dispatches a new federated training round across all connected edge nodes.
-- **Response `200 OK`**:
-  ```json
-  {
-    "message": "Federated round initiated",
-    "round_number": 2,
-    "clients_dispatched": ["client-dmz-01", "client-finance-02", "client-cloud-03"]
-  }
-  ```
-
----
-
-### 2.8 Privacy Engine (`/api/privacy`)
-
-#### `GET /api/privacy/status`
-Returns technical privacy control guarantees.
-- **Response `200 OK`**:
-  ```json
-  {
-    "pii_detection": "ACTIVE",
-    "pseudonymization": "ACTIVE",
-    "data_minimization": "ACTIVE",
-    "raw_training_data_shared": "NO",
-    "audit_logging": "ACTIVE",
-    "redaction_method": "HMAC-SHA256 + Regex Masking"
-  }
-  ```
-
-#### `GET /api/privacy/events`
-Lists all redaction and pseudonymization actions recorded by the privacy engine.
-
----
-
-### 2.9 Test Mode (`/api/test/run`)
-
-#### `POST /api/test/run`
-Executes safe local synthetic attack vectors through the identical ingestion, privacy, detection, risk, alert, and WebSocket pipelines.
-- **Request Body**:
-  ```json
-  {
+}
+```
+- **Response** (`201 Created`):
+```json
+{
+  "status": "ACCEPTED",
+  "event_id": "evt_9918a2bc",
+  "organization_id": "org_enterprise_a",
+  "detection_id": "det_7a1b09",
+  "attack_type": "Brute Force",
+  "severity": "HIGH",
+  "risk_score": 78.5,
+  "risk": {
+    "score": 78.5,
+    "severity": "HIGH",
+    "factors": ["6 failed authentication attempts recorded", "Rule-based anomaly threshold triggered"],
+    "explanation": "Threat classification: Brute Force. Severity: HIGH. Risk Score: 78.5."
+  },
+  "detection": {
+    "id": "det_7a1b09",
     "attack_type": "Brute Force",
-    "count": 5
-  }
-  ```
-- **Response `200 OK`**:
-  ```json
-  {
-    "status": "COMPLETED",
-    "events_generated": 5,
-    "detections_created": 5,
-    "alerts_triggered": 5,
-    "mode": "TEST MODE"
-  }
-  ```
-
----
-
-### 2.10 Health & Status (`/api/health`, `/api/status`)
-
-#### `GET /api/health`
-Returns dynamic health evaluated from active subsystem probes:
-```json
-{
-  "api": "ACTIVE",
-  "database": "ACTIVE",
-  "ml_model": "ACTIVE",
-  "websocket": "ACTIVE",
-  "federated_learning": "ACTIVE"
+    "severity": "HIGH",
+    "confidence": 0.88
+  },
+  "alert_created": true,
+  "alert_id": "alt_1290ff",
+  "processing_latency_ms": 1.45
 }
 ```
 
+### `GET /api/v1/events`
+Query ingested protected events with pagination (`limit`, `offset`) and `organization_id` filter.
+
+### `GET /api/v1/events/{event_id}`
+Returns details of an ingested protected event.
+
 ---
 
-## 3. Real-Time WebSocket Protocol (`/ws`)
+## Threat Detections & Alerts
 
-### 3.1 Connection
-Clients connect to `/ws`. The connection is managed by the ASGI WebSocket Manager.
+### `GET /api/v1/detections`
+Returns detection results from dual-layer Rule Engine and Machine Learning model.
+- **Parameters**: `limit`, `offset`, `organization_id`, `attack_type`, `severity`
 
-### 3.2 Message Envelope
-All outgoing WebSocket messages follow a strict JSON structure:
+### `GET /api/v1/alerts`
+Returns active alerts generated by deterministic risk scoring.
+- **Parameters**: `organization_id`, `status` (`NEW`, `ACKNOWLEDGED`, `RESOLVED`), `severity`
+
+### `PUT /api/v1/alerts/{alert_id}/acknowledge`
+Acknowledges an alert with analyst identity and audit log generation.
+
+### `PUT /api/v1/alerts/{alert_id}/resolve`
+Resolves an active alert.
+
+---
+
+## Privacy Policies & Live Metrics
+
+### `GET /api/v1/privacy/metrics`
+Returns real, calculated counts of data minimization operations:
 ```json
 {
-  "type": "<EVENT_NAME>",
-  "timestamp": "2026-09-12T10:30:15.123Z",
-  "data": { ... }
+  "processed_events": 142,
+  "protected_events": 142,
+  "removed_fields": 426,
+  "masked_fields": 0,
+  "pseudonymized_fields": 142,
+  "privacy_violations": 0,
+  "transmission_failures": 0,
+  "active_policies_count": 8,
+  "status": "ENFORCED",
+  "zero_raw_retention": true,
+  "privacy_guarantee": "Zero raw sensitive telemetry retained or permitted"
 }
 ```
 
-### 3.3 Broadcast Events Catalog
-| Event Type | Trigger | Example Payload Summary |
-| :--- | :--- | :--- |
-| `event.received` | Ingested telemetry event | Event ID, client ID, sanitized source, timestamp |
-| `detection.created` | Threat flagged by rule or ML | Detection ID, prediction, attack type, confidence, risk score |
-| `alert.created` | High/Critical risk detection | Alert ID, severity, attack type, client ID |
-| `incident.updated` | Incident dossier updated | Incident ID, title, status, severity |
-| `client.updated` | Client heartbeat/status change | Client ID, status (`ONLINE`/`OFFLINE`/`TRAINING`) |
-| `training.started` | FL round initiated | Round number, participants |
-| `training.completed`| FL round finished | Round number, new accuracy, f1, global model version |
-| `model.updated` | Global model version bumped | New model ID, version, benchmark metrics |
-| `system.status` | System health heartbeat | Active subsystem statuses, connected client counts |
+### `GET /api/v1/privacy/policies`
+Returns configured per-field transformation rules for an organization.
+
+### `PUT /api/v1/privacy/policies/{policy_id}`
+Updates a policy rule (`ALLOW`, `REMOVE`, `MASK`, `PSEUDONYMIZE`, `AGGREGATE`).
+
+### `POST /api/v1/privacy/transform-demo`
+Interactive demonstration endpoint for Privacy Transformation Viewer:
+Runs candidate raw event through the local Privacy Gateway and returns a 3-stage comparison.
+
+---
+
+## Audit Logs & System Health
+
+### `GET /api/v1/audit-logs`
+Returns tamper-evident audit records (`LOGIN`, `INGEST_EVENT`, `POLICY_UPDATED`, `ALERT_ACKNOWLEDGED`, `PRIVACY_LEAKAGE_REJECTED`).
+
+### `GET /api/v1/system/health`
+Returns live subsystem status:
+- API status
+- Database status (live ping & query latency)
+- Real-time WebSocket connection counts
+- Edge Agent health & active count
+- Scikit-learn ML model status
+- Telemetry Ingestion Queue status
+
+---
+
+## Real-Time WebSockets
+
+### `WS /api/v1/ws/dashboard`
+Bidirectional WebSocket channel streaming live detections, alerts, and system health to cybersecurity dashboards.
+- **Events Broadcast**:
+  - `event.received`: Ingested event metadata
+  - `detection.created`: Detection prediction, confidence, attack type
+  - `alert.created`: New alert notification with risk score
+  - `alert.updated`: Status changes (acknowledged / resolved)
+  - `system.status`: Operational heartbeat

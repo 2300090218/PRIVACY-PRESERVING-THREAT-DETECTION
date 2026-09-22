@@ -1,7 +1,12 @@
 """
 SQLAlchemy Models for Privacy-Preserving Threat Detection Platform
-Includes full relational schema for telemetry, detections, alerts, incidents,
-federated rounds, models, clients, privacy events, audit logs, and metrics.
+Includes full relational schema for multi-organization isolation, agents,
+api_credentials, privacy_policies, protected_events, detections, alerts,
+risk_assessments, incidents, audit_logs, and system_metrics.
+
+Zero-raw-data central storage principle:
+Raw sensitive telemetry (usernames, exact IP addresses, physical locations,
+raw device IDs, complete raw logs) is NEVER persisted in these tables.
 """
 
 from datetime import datetime, timezone
@@ -14,17 +19,42 @@ from backend.app.database import Base
 def utcnow():
     return datetime.now(timezone.utc)
 
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    org_id = Column(String(64), unique=True, index=True, nullable=False)
+    name = Column(String(128), nullable=False)
+    status = Column(String(32), default="ACTIVE", index=True) # ACTIVE, SUSPENDED
+    contact_email = Column(String(128), nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(String(64), default="org_enterprise_a", index=True, nullable=False)
     username = Column(String(64), unique=True, index=True, nullable=False)
     email = Column(String(128), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(32), default="VIEWER", nullable=False) # ADMIN, SECURITY_ANALYST, CLIENT, VIEWER
+    role = Column(String(32), default="VIEWER", nullable=False) # ADMIN, SECURITY_ANALYST, AGENT_USER, VIEWER
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utcnow)
 
+class Agent(Base):
+    __tablename__ = "agents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agent_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
+    name = Column(String(128), nullable=False)
+    status = Column(String(32), default="ONLINE", index=True) # ONLINE, OFFLINE, ERROR
+    api_key_hash = Column(String(128), nullable=True)
+    version = Column(String(64), default="1.0.0")
+    last_seen = Column(DateTime, default=utcnow, index=True)
+    created_at = Column(DateTime, default=utcnow)
+
+# Backward-compatible Client model for federated learning sensor nodes
 class Client(Base):
     __tablename__ = "clients"
 
@@ -39,19 +69,52 @@ class Client(Base):
     ip_address = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
+class ApiCredential(Base):
+    __tablename__ = "api_credentials"
+
+    id = Column(Integer, primary_key=True, index=True)
+    organization_id = Column(String(64), index=True, nullable=False)
+    agent_id = Column(String(64), index=True, nullable=False)
+    key_prefix = Column(String(32), nullable=False)
+    hashed_secret = Column(String(128), nullable=False)
+    name = Column(String(128), default="Default Agent API Key")
+    is_active = Column(Boolean, default=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=utcnow)
+
+class PrivacyPolicyRecord(Base):
+    __tablename__ = "privacy_policies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    policy_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
+    name = Column(String(128), default="Enterprise Boundary Policy")
+    field_name = Column(String(64), index=True, nullable=False)
+    action = Column(String(32), nullable=False) # ALLOW, REMOVE, MASK, PSEUDONYMIZE, AGGREGATE
+    parameters = Column(JSON, default=dict)
+    is_active = Column(Boolean, default=True)
+    version = Column(String(32), default="1.0.0")
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+
 class SecurityEvent(Base):
     __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
     event_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
+    agent_id = Column(String(64), index=True, nullable=True, default="agent-dmz-01")
+    client_id = Column(String(64), index=True, nullable=True)
     timestamp = Column(DateTime, default=utcnow, index=True, nullable=False)
-    client_id = Column(String(64), index=True, nullable=False)
-    event_type = Column(String(64), index=True, nullable=False) # e.g., network_flow, auth_attempt
-    source = Column(String(128), nullable=False)
-    destination = Column(String(128), nullable=False)
+    event_type = Column(String(64), index=True, nullable=False) # e.g., network_flow, failed_login, brute_force_attack
+    telemetry_source = Column(String(32), default="TEST", index=True) # REAL, TEST, DEMO
+    source = Column(String(128), nullable=True) # Pseudonymized identifier, e.g. DEV-8F31
+    destination = Column(String(128), nullable=True)
     protocol = Column(String(32), default="TCP")
+    failed_attempts = Column(Integer, default=0)
+    attack_indicators = Column(JSON, default=list)
     features = Column(JSON, default=dict)
     metadata_payload = Column(JSON, default=dict)
+    privacy_metadata = Column(JSON, default=dict)
     is_test = Column(Boolean, default=False, index=True)
     processing_status = Column(String(32), default="PROCESSED")
     ingested_at = Column(DateTime, default=utcnow)
@@ -59,16 +122,23 @@ class SecurityEvent(Base):
 
     detections = relationship("Detection", back_populates="event", cascade="all, delete-orphan")
     privacy_events = relationship("PrivacyEvent", back_populates="event", cascade="all, delete-orphan")
+    risk_assessment = relationship("RiskAssessment", back_populates="event", uselist=False, cascade="all, delete-orphan")
 
     __table_args__ = (
+        Index("idx_events_org_time", "organization_id", "timestamp"),
         Index("idx_events_client_time", "client_id", "timestamp"),
         Index("idx_events_type_time", "event_type", "timestamp"),
     )
+
+# Alias ProtectedEvent to SecurityEvent for domain alignment
+ProtectedEvent = SecurityEvent
 
 class Detection(Base):
     __tablename__ = "detections"
 
     id = Column(Integer, primary_key=True, index=True)
+    detection_id = Column(String(64), unique=True, index=True, nullable=True)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
     event_id = Column(String(64), ForeignKey("events.event_id"), index=True, nullable=False)
     prediction = Column(String(32), index=True, nullable=False) # BENIGN, SUSPICIOUS, MALICIOUS
     attack_type = Column(String(64), index=True, nullable=False) # Brute Force, DDoS, Port Scan, Botnet, BENIGN
@@ -86,10 +156,12 @@ class Alert(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     alert_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
     detection_id = Column(String(64), nullable=True, index=True)
     event_id = Column(String(64), index=True, nullable=False)
     timestamp = Column(DateTime, default=utcnow, index=True, nullable=False)
-    client_id = Column(String(64), index=True, nullable=False)
+    client_id = Column(String(64), index=True, nullable=True)
+    agent_id = Column(String(64), index=True, nullable=True)
     attack_type = Column(String(64), index=True, nullable=False)
     severity = Column(String(32), index=True, nullable=False) # LOW, MEDIUM, HIGH, CRITICAL
     confidence = Column(Float, nullable=False)
@@ -103,11 +175,26 @@ class Alert(Base):
     resolved_at = Column(DateTime, nullable=True)
     is_test = Column(Boolean, default=False, index=True)
 
+class RiskAssessment(Base):
+    __tablename__ = "risk_assessments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    event_id = Column(String(64), ForeignKey("events.event_id"), index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
+    risk_score = Column(Float, nullable=False)
+    severity = Column(String(32), index=True, nullable=False) # LOW, MEDIUM, HIGH, CRITICAL
+    risk_factors = Column(JSON, default=list)
+    explanation = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
+
+    event = relationship("SecurityEvent", back_populates="risk_assessment")
+
 class Incident(Base):
     __tablename__ = "incidents"
 
     id = Column(Integer, primary_key=True, index=True)
     incident_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
     title = Column(String(255), nullable=False)
     severity = Column(String(32), index=True, nullable=False)
     status = Column(String(32), default="OPEN", index=True) # OPEN, INVESTIGATING, CONTAINED, RESOLVED
@@ -189,8 +276,9 @@ class AuditLog(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     timestamp = Column(DateTime, default=utcnow, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False, default="org_enterprise_a")
     actor = Column(String(64), index=True, nullable=False)
-    action = Column(String(64), index=True, nullable=False) # LOGIN, EVENT_RECEIVED, DETECTION_CREATED, etc.
+    action = Column(String(64), index=True, nullable=False) # LOGIN, EVENT_RECEIVED, DETECTION_CREATED, POLICY_UPDATED, etc.
     resource = Column(String(64), nullable=False)
     resource_id = Column(String(64), nullable=True)
     result = Column(String(32), default="SUCCESS")

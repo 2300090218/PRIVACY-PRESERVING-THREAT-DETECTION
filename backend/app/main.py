@@ -14,7 +14,9 @@ from sqlalchemy.future import select
 
 from backend.app.config import settings
 from backend.app.database import init_db, AsyncSessionLocal
-from backend.app.models.all_models import User, Client, ModelVersion
+from backend.app.models.all_models import (
+    User, Client, ModelVersion, Organization, Agent, ApiCredential, PrivacyPolicyRecord
+)
 from backend.app.security.authentication import get_password_hash
 from backend.app.security.security_headers import SecurityHeadersMiddleware
 from backend.app.detection.model_manager import model_manager
@@ -34,6 +36,7 @@ from backend.app.api.audit import router as audit_router
 from backend.app.api.metrics import router as metrics_router
 from backend.app.api.health import router as health_router
 from backend.app.api.test_routes import router as test_router
+from backend.app.api.v1 import api_v1_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -41,21 +44,83 @@ async def lifespan(app: FastAPI):
     print("[Startup] Initializing Database schema...")
     await init_db()
 
-    # Seed default admin user and federated clients if empty
+    # Seed default entities if empty
     async with AsyncSessionLocal() as session:
-        # 1. Admin User
+        # 1. Seed Organizations
+        org_res = await session.execute(select(Organization))
+        if not org_res.scalars().first():
+            print("[Startup] Seeding multi-tenant organizations (Org A, Org B, Org C)...")
+            initial_orgs = [
+                Organization(org_id="org_enterprise_a", name="Enterprise Global A", status="ACTIVE", contact_email="security@org-a.internal"),
+                Organization(org_id="org_finance_b", name="Financial Services B", status="ACTIVE", contact_email="soc@finance-b.internal"),
+                Organization(org_id="org_cloud_c", name="Cloud Infrastructure C", status="ACTIVE", contact_email="cloud-sec@cloud-c.internal"),
+            ]
+            session.add_all(initial_orgs)
+
+        # 2. Users (Admin & Security Analyst)
         admin_res = await session.execute(select(User).where(User.username == "admin"))
         if not admin_res.scalars().first():
             print("[Startup] Seeding initial administrator account...")
             admin_user = User(
                 username="admin",
                 email="security-admin@threat-detection.local",
+                organization_id="org_enterprise_a",
                 hashed_password=get_password_hash("AdminPass123!"),
                 role="ADMIN"
             )
             session.add(admin_user)
 
-        # 2. Federated Clients
+        analyst_res = await session.execute(select(User).where(User.username == "analyst"))
+        if not analyst_res.scalars().first():
+            print("[Startup] Seeding initial security analyst account...")
+            analyst_user = User(
+                username="analyst",
+                email="security-analyst@threat-detection.local",
+                organization_id="org_enterprise_a",
+                hashed_password=get_password_hash("AnalystPass123!"),
+                role="SECURITY_ANALYST"
+            )
+            session.add(analyst_user)
+
+        # 3. Agents & API Credentials
+        agent_res = await session.execute(select(Agent))
+        if not agent_res.scalars().first():
+            print("[Startup] Registering default Organization edge agents...")
+            import hashlib
+            default_agents = [
+                Agent(agent_id="agent-dmz-01", organization_id="org_enterprise_a", name="DMZ Gateway Edge Agent", status="ONLINE", version="1.0.0"),
+                Agent(agent_id="agent-fin-01", organization_id="org_finance_b", name="Financial Subnet Edge Agent", status="ONLINE", version="1.0.0"),
+                Agent(agent_id="agent-cld-01", organization_id="org_cloud_c", name="Cloud VPC Flow Edge Agent", status="ONLINE", version="1.0.0"),
+            ]
+            session.add_all(default_agents)
+
+            # API Keys
+            dmz_key = "agent_key_enterprise_a_dmz_prod_secret"
+            session.add(ApiCredential(
+                organization_id="org_enterprise_a",
+                agent_id="agent-dmz-01",
+                key_prefix="agent_key_ent...",
+                hashed_secret=hashlib.sha256(dmz_key.encode("utf-8")).hexdigest(),
+                name="DMZ Gateway Production Key"
+            ))
+
+        # 4. Default Privacy Policy Rules (Enterprise Data Minimization)
+        policy_res = await session.execute(select(PrivacyPolicyRecord))
+        if not policy_res.scalars().first():
+            print("[Startup] Seeding default Privacy Policy Engine rules...")
+            default_policies = [
+                PrivacyPolicyRecord(policy_id="pol-usr-01", organization_id="org_enterprise_a", field_name="username", action="REMOVE", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-ip-01", organization_id="org_enterprise_a", field_name="source_ip", action="REMOVE", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-loc-01", organization_id="org_enterprise_a", field_name="exact_location", action="REMOVE", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-dev-01", organization_id="org_enterprise_a", field_name="device_id", action="PSEUDONYMIZE", parameters={"algorithm": "HMAC-SHA256"}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-type-01", organization_id="org_enterprise_a", field_name="event_type", action="ALLOW", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-att-01", organization_id="org_enterprise_a", field_name="attack_indicators", action="ALLOW", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-time-01", organization_id="org_enterprise_a", field_name="timestamp", action="ALLOW", parameters={}, version="1.0.0"),
+                PrivacyPolicyRecord(policy_id="pol-risk-01", organization_id="org_enterprise_a", field_name="risk_score", action="ALLOW", parameters={}, version="1.0.0"),
+            ]
+            session.add_all(default_policies)
+
+        # 5. Federated Clients (Legacy/Federated ML)
         client_res = await session.execute(select(Client))
         existing_clients = client_res.scalars().all()
         if not existing_clients:
@@ -85,7 +150,7 @@ async def lifespan(app: FastAPI):
             ]
             session.add_all(initial_clients)
 
-        # 3. Baseline Model Version record
+        # 6. Baseline Model Version record
         mv_res = await session.execute(select(ModelVersion).where(ModelVersion.version == "global-v1"))
         if not mv_res.scalars().first() and model_manager.metrics:
             baseline_mv = ModelVersion(
@@ -161,13 +226,12 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# WebSocket Endpoint
+# WebSocket Endpoint (backward-compatible /ws)
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     try:
         while True:
-            # Handle inbound client ping or query messages
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
@@ -176,7 +240,10 @@ async def websocket_endpoint(websocket: WebSocket):
     except Exception:
         ws_manager.disconnect(websocket)
 
-# Include Routers
+# Include Version 1 Standard Central API Routers (/api/v1/...)
+app.include_router(api_v1_router)
+
+# Include Legacy Routers for Backward Compatibility
 app.include_router(auth_router)
 app.include_router(events_router)
 app.include_router(detections_router)

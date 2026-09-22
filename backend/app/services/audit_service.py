@@ -1,6 +1,7 @@
 """
 Audit Logging Service
-Records immutable, append-only security actions for complete operational transparency.
+Records immutable, append-only security actions for complete operational transparency
+with multi-organization boundary isolation.
 """
 
 from typing import Dict, Any, Optional
@@ -12,12 +13,14 @@ async def log_audit(
     actor: str,
     action: str,
     resource: str,
+    organization_id: str = "org_enterprise_a",
     resource_id: Optional[str] = None,
     result: str = "SUCCESS",
     metadata: Optional[Dict[str, Any]] = None
 ) -> AuditLog:
     """Creates and commits an immutable audit trail record."""
     audit_entry = AuditLog(
+        organization_id=organization_id,
         actor=actor,
         action=action,
         resource=resource,

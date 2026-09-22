@@ -8,25 +8,29 @@ import {
   AlertTriangle,
   Flame,
   Radio,
-  FolderGit2,
+  Building2,
+  Lock,
+  Eye,
+  Sliders,
+  FileText,
+  Activity,
   Network,
   Share2,
-  Lock,
-  FileText,
-  Sliders,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Live Threats", href: "/threats", icon: Flame },
   { label: "Real-Time Alerts", href: "/alerts", icon: AlertTriangle },
-  { label: "Threat Detections", href: "/threats", icon: Flame },
+  { label: "Organizations", href: "/organizations", icon: Building2 },
+  { label: "Privacy Center", href: "/privacy", icon: Lock },
+  { label: "Transformation Viewer", href: "/privacy/viewer", icon: Eye },
+  { label: "Minimization Policies", href: "/privacy/policies", icon: Sliders },
+  { label: "Audit Logs", href: "/audit", icon: FileText },
+  { label: "System Health", href: "/health", icon: Activity },
   { label: "Event Telemetry", href: "/events", icon: Radio },
-  { label: "Incidents", href: "/incidents", icon: FolderGit2 },
   { label: "Sensor Clients", href: "/clients", icon: Network },
   { label: "Federated Learning", href: "/federated-learning", icon: Share2 },
-  { label: "Privacy Center", href: "/privacy", icon: Lock },
-  { label: "Audit Logs", href: "/audit", icon: FileText },
-  { label: "Settings", href: "/settings", icon: Sliders },
 ];
 
 export function Sidebar() {

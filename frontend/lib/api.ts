@@ -138,5 +138,100 @@ export const api = {
   getContinuousMonitoringStatus: () => {
     return fetchJson<any>("/api/test/continuous/status");
   },
+
+  // Version 1 Standardized Endpoints
+  v1: {
+    // Organizations
+    getOrganizations: () => fetchJson<any[]>("/api/v1/organizations"),
+    registerOrganization: (data: { org_id: string; name: string; contact_email?: string }) =>
+      fetchJson<any>("/api/v1/organizations/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    // Agents
+    getAgents: (orgId?: string) => {
+      const q = orgId ? `?organization_id=${encodeURIComponent(orgId)}` : "";
+      return fetchJson<any[]>(`/api/v1/agents${q}`);
+    },
+    getAgentById: (agentId: string) => fetchJson<any>(`/api/v1/agents/${agentId}`),
+    registerAgent: (data: { agent_id: string; organization_id: string; name: string; version?: string }) =>
+      fetchJson<any>("/api/v1/agents/register", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    // Events
+    getEvents: (params?: { limit?: number; offset?: number; organization_id?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.limit) q.set("limit", String(params.limit));
+      if (params?.offset) q.set("offset", String(params.offset));
+      if (params?.organization_id) q.set("organization_id", params.organization_id);
+      return fetchJson<any[]>(`/api/v1/events?${q.toString()}`);
+    },
+    getEventById: (eventId: string) => fetchJson<any>(`/api/v1/events/${eventId}`),
+    ingestProtectedEvent: (eventData: any, headers?: Record<string, string>) =>
+      fetchJson<any>("/api/v1/events", {
+        method: "POST",
+        headers: headers || {},
+        body: JSON.stringify(eventData),
+      }),
+
+    // Detections
+    getDetections: (params?: { limit?: number; offset?: number; organization_id?: string; attack_type?: string; severity?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.limit) q.set("limit", String(params.limit));
+      if (params?.offset) q.set("offset", String(params.offset));
+      if (params?.organization_id) q.set("organization_id", params.organization_id);
+      if (params?.attack_type) q.set("attack_type", params.attack_type);
+      if (params?.severity) q.set("severity", params.severity);
+      return fetchJson<any[]>(`/api/v1/detections?${q.toString()}`);
+    },
+
+    // Alerts
+    getAlerts: (params?: { organization_id?: string; status?: string; severity?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.organization_id) q.set("organization_id", params.organization_id);
+      if (params?.status) q.set("status", params.status);
+      if (params?.severity) q.set("severity", params.severity);
+      return fetchJson<any[]>(`/api/v1/alerts?${q.toString()}`);
+    },
+    acknowledgeAlert: (alertId: string) =>
+      fetchJson<any>(`/api/v1/alerts/${alertId}/acknowledge`, { method: "PUT" }),
+    resolveAlert: (alertId: string) =>
+      fetchJson<any>(`/api/v1/alerts/${alertId}/resolve`, { method: "PUT" }),
+
+    // Privacy Policies & Real Metrics
+    getPrivacyMetrics: () => fetchJson<any>("/api/v1/privacy/metrics"),
+    getPrivacyPolicies: (orgId?: string) => {
+      const q = orgId ? `?organization_id=${encodeURIComponent(orgId)}` : "";
+      return fetchJson<any[]>(`/api/v1/privacy/policies${q}`);
+    },
+    updatePrivacyPolicy: (policyId: string, data: { action: string; parameters?: Record<string, any>; is_active?: boolean }) =>
+      fetchJson<any>(`/api/v1/privacy/policies/${policyId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    transformDemo: (rawEvent: any) =>
+      fetchJson<any>("/api/v1/privacy/transform-demo", {
+        method: "POST",
+        body: JSON.stringify(rawEvent),
+      }),
+
+    // System Health
+    getSystemHealth: () => fetchJson<any>("/api/v1/system/health"),
+
+    // Audit Logs
+    getAuditLogs: (params?: { limit?: number; offset?: number; organization_id?: string; action?: string; actor?: string; result?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.limit) q.set("limit", String(params.limit));
+      if (params?.offset) q.set("offset", String(params.offset));
+      if (params?.organization_id) q.set("organization_id", params.organization_id);
+      if (params?.action) q.set("action", params.action);
+      if (params?.actor) q.set("actor", params.actor);
+      if (params?.result) q.set("result", params.result);
+      return fetchJson<any[]>(`/api/v1/audit-logs?${q.toString()}`);
+    },
+  },
 };
 

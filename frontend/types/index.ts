@@ -198,3 +198,61 @@ export interface HealthCheck {
   overall_status: string;
   mode: string;
 }
+
+export interface Organization {
+  id: number;
+  org_id: string;
+  name: string;
+  status: string;
+  contact_email?: string;
+  created_at: string;
+  active_agents: number;
+  total_events: number;
+  total_detections: number;
+}
+
+export interface AgentDevice {
+  id: number;
+  agent_id: string;
+  organization_id: string;
+  name: string;
+  status: string;
+  version: string;
+  last_seen: string;
+  created_at: string;
+}
+
+export interface PrivacyPolicyItem {
+  policy_id: string;
+  organization_id: string;
+  field_name: string;
+  action: "ALLOW" | "REMOVE" | "MASK" | "PSEUDONYMIZE" | "AGGREGATE";
+  parameters: Record<string, any>;
+  is_active: boolean;
+  version: string;
+}
+
+export interface RealPrivacyMetrics {
+  processed_events: number;
+  protected_events: number;
+  removed_fields: number;
+  masked_fields: number;
+  pseudonymized_fields: number;
+  privacy_violations: number;
+  transmission_failures: number;
+  active_policies_count: number;
+  privacy_guarantee: string;
+  zero_raw_retention: boolean;
+}
+
+export interface SystemHealthV1 {
+  status: string;
+  timestamp: string;
+  api: Record<string, any>;
+  database: Record<string, any>;
+  websocket: Record<string, any>;
+  agents: Record<string, any>;
+  ml_model: Record<string, any>;
+  queue: Record<string, any>;
+}
+

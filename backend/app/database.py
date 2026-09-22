@@ -62,3 +62,32 @@ async def init_db():
             await conn.execute(text("PRAGMA synchronous=NORMAL;"))
             await conn.execute(text("PRAGMA busy_timeout=30000;"))
         await conn.run_sync(Base.metadata.create_all)
+
+        if is_sqlite:
+            # Automatic column migration for existing SQLite dev databases
+            migrations = [
+                ("users", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("events", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("events", "agent_id", "VARCHAR(64) DEFAULT 'agent-dmz-01'"),
+                ("events", "telemetry_source", "VARCHAR(32) DEFAULT 'TEST'"),
+                ("events", "failed_attempts", "INTEGER DEFAULT 0"),
+                ("events", "attack_indicators", "JSON DEFAULT '[]'"),
+                ("events", "features", "JSON DEFAULT '{}'"),
+                ("events", "metadata_payload", "JSON DEFAULT '{}'"),
+                ("events", "privacy_metadata", "JSON DEFAULT '{}'"),
+                ("events", "processing_status", "VARCHAR(32) DEFAULT 'PROCESSED'"),
+                ("events", "processing_latency_ms", "FLOAT DEFAULT 0.0"),
+                ("events", "ingested_at", "DATETIME"),
+                ("detections", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("detections", "detection_id", "VARCHAR(64)"),
+                ("alerts", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("alerts", "agent_id", "VARCHAR(64) DEFAULT 'agent-dmz-01'"),
+                ("audit_logs", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+            ]
+            for table, col, col_type in migrations:
+                try:
+                    cols = [r[1] for r in (await conn.execute(text(f"PRAGMA table_info({table});"))).fetchall()]
+                    if cols and col not in cols:
+                        await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type};"))
+                except Exception:
+                    pass

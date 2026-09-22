@@ -62,7 +62,8 @@ def extract_flow_features(features_dict: Dict[str, Any], metadata: Dict[str, Any
     psh = float(features_dict.get("psh_flag_count", 0))
     ack = float(features_dict.get("ack_flag_count", 1))
 
-    dest_port = float(features_dict.get("dest_port", metadata.get("dest_port", 80)))
+    raw_port = features_dict.get("dest_port") or metadata.get("dest_port") or 80
+    dest_port = float(raw_port)
     pkt_var = float(features_dict.get("packet_length_variance", 500.0))
 
     vec = [
