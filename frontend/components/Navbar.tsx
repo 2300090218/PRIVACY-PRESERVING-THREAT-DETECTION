@@ -1,0 +1,241 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+  Shield,
+  Play,
+  Activity,
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle2,
+  Square,
+  Radio
+} from "lucide-react";
+import { api } from "@/lib/api";
+import { WSStatus } from "@/types";
+
+interface NavbarProps {
+  wsStatus: WSStatus;
+  mode: string;
+  systemStatus: string;
+  onTestExecuted?: () => void;
+}
+
+export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarProps) {
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [scanCount, setScanCount] = useState(0);
+  const [isLoadingToggle, setIsLoadingToggle] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [lastScenario, setLastScenario] = useState<string | null>(null);
+
+  // Sync continuous monitoring status with the backend engine
+  useEffect(() => {
+    let isMounted = true;
+    const checkMonitoringStatus = async () => {
+      try {
+        const status = await api.getContinuousMonitoringStatus();
+        if (isMounted && status) {
+          setIsMonitoring(status.is_running);
+          setScanCount(status.total_scans);
+          if (status.last_scan) {
+            setLastScenario(status.last_scan.scenario_name);
+          }
+        }
+      } catch (_) {}
+    };
+
+    checkMonitoringStatus();
+    const interval = setInterval(checkMonitoringStatus, 2500);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleToggleSecurityMonitoring = async () => {
+    setIsLoadingToggle(true);
+    try {
+      if (isMonitoring) {
+        // Stop continuous monitoring
+        const res = await api.stopContinuousMonitoring();
+        setIsMonitoring(false);
+        setToastMessage(`Security Monitoring Stopped (Completed ${res.total_scans || scanCount} scans)`);
+        setTimeout(() => setToastMessage(null), 4000);
+      } else {
+        // Start continuous monitoring on single click
+        // First, trigger an immediate scan for instant dashboard feedback
+        try {
+          const firstScan = await api.runSecurityTest();
+          setLastScenario(firstScan.scenario_name);
+          setScanCount((prev) => prev + 1);
+          setToastMessage(
+            `Continuous Monitoring Active: ${firstScan.scenario_name} (${firstScan.attack_type}) -> Risk ${firstScan.risk_score}`
+          );
+          if (onTestExecuted) {
+            onTestExecuted();
+          }
+        } catch (_) {}
+
+        // Start continuous background monitoring engine
+        const res = await api.startContinuousMonitoring(3.0);
+        setIsMonitoring(true);
+        if (res.total_scans !== undefined) {
+          setScanCount(res.total_scans);
+        }
+        setTimeout(() => setToastMessage(null), 5000);
+      }
+    } catch (err: any) {
+      setToastMessage(`Monitoring operation failed: ${err.message}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsLoadingToggle(false);
+    }
+  };
+
+  return (
+    <>
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm">
+        {/* Left: Branding & Subtitle */}
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-200">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">
+                PRIVACY-PRESERVING THREAT DETECTION
+              </h1>
+              <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                Enterprise v1.0
+              </span>
+            </div>
+            <p className="text-xs text-slate-500">
+              Collaborative Federated IDS with PII Sanitization & Real-Time Alerts
+            </p>
+          </div>
+        </div>
+
+        {/* Right: Operational Status Badges & Test Mode Action Button */}
+        <div className="flex items-center gap-3">
+          {/* Operational Mode Badge */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>{mode === "TEST" ? "TEST MODE" : "LIVE MODE"}</span>
+          </div>
+
+          {/* Continuous Monitoring Active Live Indicator */}
+          {isMonitoring && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 animate-in fade-in duration-300">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="font-mono text-[11px] font-bold">LIVE SCANS: #{scanCount}</span>
+              {lastScenario && (
+                <span className="hidden sm:inline max-w-[130px] truncate text-[10px] text-emerald-600 border-l border-emerald-300 pl-1.5">
+                  {lastScenario}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* WebSocket Status */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${
+              wsStatus === "CONNECTED"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : wsStatus === "RECONNECTING"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
+                : "bg-rose-50 text-rose-700 border-rose-200"
+            }`}
+          >
+            {wsStatus === "CONNECTED" ? (
+              <Wifi className="h-3.5 w-3.5" />
+            ) : wsStatus === "RECONNECTING" ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <WifiOff className="h-3.5 w-3.5" />
+            )}
+            <span>WS: {wsStatus}</span>
+          </div>
+
+          {/* System Health */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border ${
+              systemStatus === "ACTIVE"
+                ? "bg-blue-50 text-blue-700 border-blue-200"
+                : "bg-amber-50 text-amber-700 border-amber-200"
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span>SYS: {systemStatus}</span>
+          </div>
+
+          {/* Continuous Security Test Monitoring Action Button */}
+          <button
+            onClick={handleToggleSecurityMonitoring}
+            disabled={isLoadingToggle}
+            className={`group relative flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-semibold transition-all shadow-sm active:scale-[0.98] disabled:opacity-60 cursor-pointer ${
+              isMonitoring
+                ? "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-rose-600 hover:to-red-600 text-white shadow-emerald-200 hover:shadow-rose-200 ring-2 ring-emerald-400/40"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200"
+            }`}
+            title={
+              isMonitoring
+                ? "Continuous Threat Monitoring is ACTIVE. Click to stop monitoring."
+                : "Click to begin continuous live security telemetry monitoring"
+            }
+          >
+            {isLoadingToggle ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : isMonitoring ? (
+              <>
+                {/* Active monitoring state (Default view) */}
+                <span className="flex items-center gap-1.5 group-hover:hidden">
+                  <Radio className="h-3.5 w-3.5 animate-pulse text-emerald-200" />
+                  <span>MONITORING ACTIVE</span>
+                  <span className="px-1.5 py-0.5 rounded bg-black/25 text-[10px] font-mono font-bold tracking-tight">
+                    #{scanCount}
+                  </span>
+                </span>
+                {/* Hover state: click to stop */}
+                <span className="hidden group-hover:flex items-center gap-1.5">
+                  <Square className="h-3.5 w-3.5 fill-current text-rose-200" />
+                  <span>STOP MONITORING</span>
+                  <span className="px-1.5 py-0.5 rounded bg-black/25 text-[10px] font-mono font-bold tracking-tight">
+                    #{scanCount}
+                  </span>
+                </span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5 fill-current" />
+                <span>RUN SECURITY TEST</span>
+              </>
+            )}
+          </button>
+        </div>
+      </header>
+
+      {/* Floating Test Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs px-4 py-3 rounded-lg shadow-xl border border-slate-700 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span className="font-medium">{toastMessage}</span>
+          <span
+            className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+              isMonitoring
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                : "bg-amber-500/20 text-amber-300"
+            }`}
+          >
+            {isMonitoring ? "CONTINUOUS MONITORING" : "TEST MODE"}
+          </span>
+        </div>
+      )}
+    </>
+  );
+}
+

@@ -29,13 +29,13 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@postgres:5432/threat_detection
-      - SECRET_KEY=threat-detection-super-secret-key-production-32chars
-      - JWT_SECRET=threat-detection-jwt-secret-production-32chars
-      - PRIVACY_SALT=privacy-salt-isolated-production-salt-hmac
-      - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
-      - WEBSOCKET_URL=ws://127.0.0.1:8000/ws
-      - OPERATIONAL_MODE=LIVE
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgrespassword@postgres:5432/threat_detection}
+      - SECRET_KEY=${SECRET_KEY:-threat-detection-dev-secret-key-super-secure-32chars}
+      - JWT_SECRET=${JWT_SECRET:-threat-detection-jwt-secret-dev-key-32chars}
+      - PRIVACY_SALT=${PRIVACY_SALT:-privacy-salt-isolated-dev-token-hmac-salt}
+      - CORS_ORIGINS=${CORS_ORIGINS:-["http://localhost:3000","http://127.0.0.1:3000"]}
+      - WEBSOCKET_URL=${WEBSOCKET_URL:-ws://127.0.0.1:8000/ws}
+      - OPERATIONAL_MODE=${OPERATIONAL_MODE:-LIVE}
     ports:
       - "8000:8000"
     volumes:
@@ -51,8 +51,8 @@ services:
     depends_on:
       - backend
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL:-ws://localhost:8000/ws}
     ports:
       - "3000:3000"
 

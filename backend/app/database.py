@@ -9,14 +9,25 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import declarative_base
 from backend.app.config import settings
 
+def get_engine_url(raw_url: str) -> str:
+    """Normalizes database connection string for SQLAlchemy async drivers."""
+    if raw_url.startswith("postgres://"):
+        return raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if raw_url.startswith("postgresql://") and not raw_url.startswith("postgresql+"):
+        return raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return raw_url
+
+db_url = get_engine_url(settings.DATABASE_URL)
+is_sqlite = db_url.startswith("sqlite")
+
 # Engine configuration
 connect_args = {}
-if settings.DATABASE_URL.startswith("sqlite"):
+if is_sqlite:
     connect_args["check_same_thread"] = False
     connect_args["timeout"] = 30.0
 
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,
     connect_args=connect_args,
     future=True
@@ -46,7 +57,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     """Initializes all database tables registered on Base and optimizes SQLite for concurrency."""
     async with engine.begin() as conn:
-        if settings.DATABASE_URL.startswith("sqlite"):
+        if is_sqlite:
             await conn.execute(text("PRAGMA journal_mode=WAL;"))
             await conn.execute(text("PRAGMA synchronous=NORMAL;"))
             await conn.execute(text("PRAGMA busy_timeout=30000;"))

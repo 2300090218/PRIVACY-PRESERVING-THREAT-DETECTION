@@ -26,6 +26,9 @@ wheels/
 
 # Database
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 *.sqlite3
 *.sqlite
 
@@ -34,19 +37,33 @@ wheels/
 .coverage
 htmlcov/
 
+# Logs
+*.log
+backend_err.log
+backend_out.log
+backend_platform.log
+frontend_platform.log
+
 # Node / Next.js
+node_modules/
 frontend/node_modules/
+.next/
 frontend/.next/
+out/
 frontend/out/
 .npm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Vercel
+.vercel/
+frontend/.vercel/
+
 # Environment & IDE
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
 .idea/
 .vscode/
 *.swp
@@ -55,3 +72,4 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
