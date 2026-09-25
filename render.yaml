@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: privacy-threat-backend
+    runtime: docker
+    dockerfilePath: docker/Dockerfile.backend
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /api/v1/system/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: PORT
+        value: 8000
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PRIVACY_SALT
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: '["http://localhost:3000"]'
+      - key: OPERATIONAL_MODE
+        value: LIVE
