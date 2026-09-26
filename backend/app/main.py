@@ -38,9 +38,8 @@ from backend.app.api.health import router as health_router
 from backend.app.api.test_routes import router as test_router
 from backend.app.api.v1 import api_v1_router
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application startup & shutdown lifecycle hooks."""
+async def initialize_platform():
+    """Initializes Database schema and default seed data if not present."""
     print("[Startup] Initializing Database schema...")
     await init_db()
 
@@ -164,8 +163,12 @@ async def lifespan(app: FastAPI):
             session.add(baseline_mv)
 
         await session.commit()
-
     print("[Startup] Platform initialization complete.")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application startup & shutdown lifecycle hooks."""
+    await initialize_platform()
     yield
     print("[Shutdown] Cleaning up platform resources...")
 

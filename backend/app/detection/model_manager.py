@@ -8,10 +8,14 @@ import os
 import json
 import joblib
 from typing import Dict, Any, Optional
-from backend.app.config import settings
+from backend.app.config import settings, ROOT_DIR
 
 class ModelManager:
     def __init__(self, models_dir: str = settings.MODEL_DIR):
+        if not os.path.exists(models_dir):
+            fallback = os.path.join(ROOT_DIR, "ml", "models")
+            if os.path.exists(fallback):
+                models_dir = fallback
         self.models_dir = models_dir
         self.active_version = "global-v1"
         self.model = None

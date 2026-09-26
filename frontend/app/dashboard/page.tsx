@@ -107,26 +107,46 @@ export default function DashboardPage() {
     }
   }, []);
 
-  useEffect(() => {
-    loadAllData();
-    const interval = setInterval(loadAllData, 12000);
-    return () => clearInterval(interval);
-  }, [loadAllData]);
-
-  // Real-time WebSocket event handler: updates state instantly without page refresh!
-  useWebSocketTelemetry(
+  // Real-time WebSocket / HTTP Polling telemetry event handler
+  const { status: wsStatus } = useWebSocketTelemetry(
     useCallback((msg: WSEventMessage) => {
       if (msg.type === "alert.created") {
-        setAlerts((prev) => [msg.data, ...prev]);
+        setAlerts((prev) => [msg.data, ...prev.filter((a) => a.alert_id !== msg.data.alert_id)]);
       } else if (msg.type === "detection.created") {
-        setRecentDetections((prev) => [msg.data, ...prev.slice(0, 9)]);
+        setRecentDetections((prev) => [
+          msg.data,
+          ...prev.filter((d) => d.event_id !== (msg.data.event_id || (msg.data as any).detection_id)).slice(0, 9),
+        ]);
       } else if (msg.type === "event.received") {
-        setRecentEvents((prev) => [msg.data, ...prev.slice(0, 9)]);
+        setRecentEvents((prev) => [
+          msg.data,
+          ...prev.filter((e) => e.event_id !== msg.data.event_id).slice(0, 9),
+        ]);
       } else if (msg.type === "training.completed") {
         loadAllData();
       }
     }, [loadAllData])
   );
+
+  useEffect(() => {
+    loadAllData();
+    // When WebSocket is connected, background polling can be slower (15s)
+    // When WebSocket is disconnected (such as on Vercel Serverless), fall back to active HTTP polling (3.5s)
+    const pollInterval = wsStatus === "CONNECTED" ? 15000 : 3500;
+    const interval = setInterval(loadAllData, pollInterval);
+    return () => clearInterval(interval);
+  }, [loadAllData, wsStatus]);
+
+  // Instant refresh on security test execution dispatched by the Navbar
+  useEffect(() => {
+    const handleTestExecuted = () => {
+      loadAllData();
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("threat-detection:test-executed", handleTestExecuted);
+      return () => window.removeEventListener("threat-detection:test-executed", handleTestExecuted);
+    }
+  }, [loadAllData]);
 
   // Derive dynamic overall threat level
   const activeAlerts = alerts.filter((a) => a.status === "NEW");

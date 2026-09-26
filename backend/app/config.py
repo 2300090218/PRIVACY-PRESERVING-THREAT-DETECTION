@@ -5,9 +5,14 @@ Loads settings from environment variables or .env file with validated defaults.
 
 import os
 import json
+import tempfile
 from typing import List, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
+
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+TMP_DIR = "/tmp" if os.path.exists("/tmp") else tempfile.gettempdir()
+TMP_DB_PATH = os.path.join(TMP_DIR, "threat_detection.db").replace("\\", "/")
 
 class Settings(BaseSettings):
     APP_NAME: str = "Privacy-Preserving Threat Detection"
@@ -17,7 +22,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
 
     # Database: Async SQLite fallback by default for zero-friction local run
-    DATABASE_URL: str = "sqlite+aiosqlite:///./threat_detection.db"
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{TMP_DB_PATH}" if os.environ.get("VERCEL") else "sqlite+aiosqlite:///./threat_detection.db"
 
     # Security & JWT
     SECRET_KEY: str = "threat-detection-dev-secret-key-super-secure-32chars"
@@ -50,8 +55,8 @@ class Settings(BaseSettings):
         return v
 
     # ML & Federated Learning
-    MODEL_DIR: str = "./ml/models"
-    DATASET_DIR: str = "./ml/datasets"
+    MODEL_DIR: str = os.path.join(ROOT_DIR, "ml", "models")
+    DATASET_DIR: str = os.path.join(ROOT_DIR, "ml", "datasets")
     FL_SERVER_HOST: str = "0.0.0.0"
     FL_SERVER_PORT: int = 8080
     FL_MIN_CLIENTS: int = 3
