@@ -6,7 +6,10 @@ Returns prediction category, attack type, confidence, severity, and processing l
 
 import time
 from typing import Dict, Any
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from backend.app.detection.feature_engineering import extract_flow_features
 from backend.app.detection.model_manager import model_manager

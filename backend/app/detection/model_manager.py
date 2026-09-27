@@ -6,7 +6,10 @@ and handles hot-swapping when federated aggregation updates the global model.
 
 import os
 import json
-import joblib
+try:
+    import joblib
+except ImportError:
+    joblib = None
 from typing import Dict, Any, Optional
 from backend.app.config import settings, ROOT_DIR
 

@@ -14,10 +14,12 @@ dist/
 downloads/
 eggs/
 .eggs/
-/lib/
 /lib64/
+!lib/
+!lib/**
 !frontend/lib/
 !frontend/lib/**
+_uv/
 parts/
 sdist/
 var/
@@ -76,3 +78,5 @@ frontend/.vercel/
 Thumbs.db
 
 API_KEYS_AND_CREDENTIALS.docx
+.vercel
+.env*
