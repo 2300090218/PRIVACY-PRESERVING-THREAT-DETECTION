@@ -17,19 +17,24 @@ The automated test suite is located in `backend/tests/` and built using `pytest`
 | Test Module | Coverage Scope | Verified Behaviors |
 | :--- | :--- | :--- |
 | `test_auth.py` | Authentication & RBAC | Password hashing, JWT issue/decode, role permissions, 401/403 responses |
+| `test_crypto_privacy.py` | Part 31 Cryptographic Suite | AES-256-GCM roundtrip, fresh nonce verification, tamper detection, HMAC-SHA256 correlation, secret leakage prevention, cross-org isolation |
+| `test_aes_gcm_privacy.py` | Part 30 Privacy Engine | Nonce uniqueness, key rotation, coordinate coarsening (AP_REGION_01), 15 Pre-Send Security Validation checks |
+| `test_pre_send_pipeline.py` | Pre-Send Pipeline | Raw IP/PII removal, device pseudonymization, API key/JWT blocking, telemetry optimization |
+| `test_privacy_leakage.py` | Leakage Prevention | Central API rejection of unencrypted/raw IPs, locations, credentials, and usernames |
 | `test_privacy.py` | Privacy Engine | PII detection, credential `[REDACTED]` masking, HMAC-SHA256 pseudonymization |
 | `test_detection.py` | Detection Engines | Rule-based heuristics (brute-force, port sweep, backdoors), ML Random Forest inference |
 | `test_risk.py` | Risk Engine | Deterministic risk scoring formula, severity thresholds (`LOW` to `CRITICAL`) |
 | `test_pipeline.py` | Event Pipeline | End-to-end ingestion $\rightarrow$ privacy $\rightarrow$ detection $\rightarrow$ risk $\rightarrow$ alert $\rightarrow$ audit |
 | `test_federated.py` | Federated Learning | Sample-weighted FedAvg, $L_2$ gradient clipping, global round evaluation |
 | `test_health.py` | Health & Subsystems | Subsystem probe evaluations (`ACTIVE`, `DEGRADED`, `OFFLINE`) |
+| `test_organization_isolation.py` | Multi-Tenant Isolation | Tenant event separation, agent scoping, zero cross-org data leakage |
 
 ---
 
 ## 3. Running Automated Tests
 
 ### 3.1 Backend Tests
-To run the complete test suite with verbose output:
+To run the complete test suite (96 tests) with verbose output:
 ```bash
 # Ensure Python virtual environment is activated
 python -m pytest backend/tests -v
@@ -37,34 +42,42 @@ python -m pytest backend/tests -v
 
 ### 3.2 Running Specific Test Suites
 ```bash
-# Test privacy and pseudonymization only
-python -m pytest backend/tests/test_privacy.py -v
+# Run Part 31 Cryptographic Privacy Suite (All 15 tests)
+python -m pytest backend/tests/test_crypto_privacy.py -v
 
-# Test detection engines (Rule + ML)
+# Run Part 30 AES-256-GCM & 15 Pre-Send Security Validation Checks
+python -m pytest backend/tests/test_aes_gcm_privacy.py -v
+
+# Run Pre-Send Pipeline & Leakage Detection tests
+python -m pytest backend/tests/test_pre_send_pipeline.py backend/tests/test_privacy_leakage.py -v
+
+# Run detection engines (Rule + ML)
 python -m pytest backend/tests/test_detection.py -v
 
-# Test federated learning and FedAvg aggregation
+# Run federated learning and FedAvg aggregation
 python -m pytest backend/tests/test_federated.py -v
 ```
 
 ### 3.3 Test Verification Results
-All 15 automated test cases execute and pass successfully:
+All 96 automated test cases execute and pass successfully (100% pass rate):
 ```text
-backend/tests/test_auth.py::test_password_hashing_and_verification PASSED
-backend/tests/test_auth.py::test_jwt_creation_and_validation PASSED
-backend/tests/test_detection.py::test_rule_based_brute_force_detection PASSED
-backend/tests/test_detection.py::test_rule_based_port_scan_detection PASSED
-backend/tests/test_detection.py::test_ml_detector_inference PASSED
-backend/tests/test_federated.py::test_fedavg_aggregation_weights PASSED
-backend/tests/test_federated.py::test_differential_privacy_weight_clipping PASSED
-backend/tests/test_federated.py::test_full_federated_round_execution PASSED
-backend/tests/test_health.py::test_subsystem_health_probes PASSED
-backend/tests/test_pipeline.py::test_end_to_end_event_ingestion_pipeline PASSED
-backend/tests/test_privacy.py::test_pii_email_and_credential_redaction PASSED
-backend/tests/test_privacy.py::test_ip_address_pseudonymization PASSED
-backend/tests/test_privacy.py::test_data_minimization PASSED
-backend/tests/test_risk.py::test_deterministic_risk_scoring PASSED
-backend/tests/test_risk.py::test_risk_level_boundaries PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_01_aes_256_gcm_roundtrip PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_02_ciphertext_must_not_equal_plaintext PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_03_fresh_nonce_per_encryption PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_04_modified_ciphertext_fails_authentication PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_05_modified_auth_tag_fails PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_06_wrong_encryption_key_fails PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_07_hmac_sha256_deterministic_pseudonym PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_08_different_ips_produce_different_hmac PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_09_hmac_output_never_contains_original_ip PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_10_outgoing_telemetry_contains_no_plaintext_sensitive_fields PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_11_secrets_never_in_frontend_javascript PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_12_secrets_never_in_next_public_variables PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_13_secrets_never_in_git_tracked_files PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_14_cross_org_receiver_sees_only_protected_representation PASSED
+backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_15_public_demo_mode_never_exposes_keys_or_personal_telemetry PASSED
+...
+======================== 96 passed in 75.64s (0:01:15) ========================
 ```
 
 ---
