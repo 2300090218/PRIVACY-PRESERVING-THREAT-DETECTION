@@ -44,7 +44,7 @@ class ModelManager:
         if os.path.exists(ver_metrics_path):
             metrics_path = ver_metrics_path
 
-        if os.path.exists(model_path) and os.path.exists(scaler_path) and os.path.exists(encoder_path):
+        if joblib is not None and os.path.exists(model_path) and os.path.exists(scaler_path) and os.path.exists(encoder_path):
             try:
                 self.model = joblib.load(model_path)
                 self.scaler = joblib.load(scaler_path)
