@@ -83,11 +83,25 @@ async def init_db():
                 ("alerts", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
                 ("alerts", "agent_id", "VARCHAR(64) DEFAULT 'agent-dmz-01'"),
                 ("audit_logs", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("incidents", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
+                ("risk_assessments", "organization_id", "VARCHAR(64) DEFAULT 'org_enterprise_a'"),
             ]
             for table, col, col_type in migrations:
                 try:
                     cols = [r[1] for r in (await conn.execute(text(f"PRAGMA table_info({table});"))).fetchall()]
                     if cols and col not in cols:
                         await conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type};"))
+                except Exception:
+                    pass
+
+            # Dynamic fallback: check all tables in Base.metadata
+            for table_name, table_obj in Base.metadata.tables.items():
+                try:
+                    existing = [r[1] for r in (await conn.execute(text(f"PRAGMA table_info({table_name});"))).fetchall()]
+                    if existing:
+                        for col in table_obj.columns:
+                            if col.name not in existing:
+                                default_sql = " DEFAULT 'org_enterprise_a'" if "organization_id" in col.name else ""
+                                await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col.name} VARCHAR(64){default_sql};"))
                 except Exception:
                     pass

@@ -32,6 +32,12 @@ async def get_detections(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+@router.get("/metrics")
+async def get_detection_metrics_endpoint(db: AsyncSession = Depends(get_db)):
+    """Provides detection aggregation metrics matching /api/metrics/detection."""
+    from backend.app.api.metrics import get_detection_metrics
+    return await get_detection_metrics(db)
+
 @router.get("/{detection_id}", response_model=DetectionResponse)
 async def get_detection(detection_id: int, db: AsyncSession = Depends(get_db)):
     stmt = select(Detection).where(Detection.id == detection_id)
@@ -40,3 +46,4 @@ async def get_detection(detection_id: int, db: AsyncSession = Depends(get_db)):
     if not detection:
         raise HTTPException(status_code=404, detail="Detection not found")
     return detection
+
