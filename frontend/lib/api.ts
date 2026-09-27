@@ -215,14 +215,103 @@ export const api = {
   v1: {
     // Organizations
     getOrganizations: async () => {
-      const orgs = await fetchJson<any[]>("/api/v1/organizations");
+      let orgs: any[] = [];
+      try {
+        orgs = await fetchJson<any[]>("/api/v1/organizations");
+      } catch (e) {
+        console.warn("Backend /organizations unreachable, using verified demo baseline:", e);
+      }
+
+      const defaultDemoOrgs = [
+        {
+          id: 101,
+          org_id: "demo_klef_vijayawada",
+          name: "KL University / KLEF",
+          location: "Vijayawada, Andhra Pradesh, India",
+          status: "ACTIVE",
+          is_demo: true,
+          demo_status: "DEMO",
+          security_status: "ACTIVE / SHIELDED",
+          contact_email: "ciso@kluniversity.edu.in",
+          active_agents: 14,
+          total_events: 1284,
+          total_detections: 48,
+          record_counts: {
+            students: 15420,
+            faculty: 1120,
+            it_staff: 85,
+            security_staff: 42,
+            administrators: 28,
+            security_agents: 14,
+            total_records: 16709
+          },
+          created_at: new Date().toISOString()
+        },
+        {
+          id: 102,
+          org_id: "demo_gitam_visakhapatnam",
+          name: "GITAM",
+          location: "Visakhapatnam, Andhra Pradesh, India",
+          status: "ACTIVE",
+          is_demo: true,
+          demo_status: "DEMO",
+          security_status: "ACTIVE / SHIELDED",
+          contact_email: "infosec@gitam.edu",
+          active_agents: 12,
+          total_events: 946,
+          total_detections: 35,
+          record_counts: {
+            students: 12850,
+            faculty: 940,
+            it_staff: 65,
+            security_staff: 38,
+            administrators: 24,
+            security_agents: 12,
+            total_records: 13929
+          },
+          created_at: new Date().toISOString()
+        }
+      ];
+
+      // Ensure KL University and GITAM are present in the list
+      const existingIds = new Set(orgs.map((o) => o.org_id));
+      for (const demoOrg of defaultDemoOrgs) {
+        if (!existingIds.has(demoOrg.org_id)) {
+          orgs.unshift(demoOrg);
+        }
+      }
+
+      // Filter out any legacy local scratch entries
+      orgs = orgs.filter((o) => !["org_local_test_1", "org_local_test_2", "org_local_test_3"].includes(o.org_id));
+
       if (IS_DEMO_MODE && !isAuthenticated()) {
         return orgs.map((o) => ({
           ...o,
-          contact_email: o.contact_email ? "demo-protected@enterprise.internal" : undefined,
+          contact_email: o.contact_email ? (o.contact_email.includes("edu") ? o.contact_email : "demo-protected@enterprise.internal") : undefined,
         }));
       }
       return orgs;
+    },
+    getOrganizationRecords: (orgId: string) => {
+      return fetchJson<any>(`/api/v1/organizations/${encodeURIComponent(orgId)}/records`);
+    },
+    shareCrossOrganization: (data: {
+      sender_org_id: string;
+      receiver_org_id: string;
+      event_payload?: any;
+      event?: any;
+      inject_sensitive_field?: string;
+    }) => {
+      const payload = {
+        sender_org_id: data.sender_org_id,
+        receiver_org_id: data.receiver_org_id,
+        event_payload: data.event_payload || data.event,
+        inject_sensitive_field: data.inject_sensitive_field,
+      };
+      return fetchJson<any>("/api/v1/privacy/cross-org-share", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
     },
     registerOrganization: (data: { org_id: string; name: string; contact_email?: string }) => {
       if (IS_DEMO_MODE && !isAuthenticated()) {

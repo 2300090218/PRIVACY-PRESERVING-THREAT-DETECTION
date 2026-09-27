@@ -19,6 +19,7 @@ The automated test suite is located in `backend/tests/` and built using `pytest`
 | `test_auth.py` | Authentication & RBAC | Password hashing, JWT issue/decode, role permissions, 401/403 responses |
 | `test_crypto_privacy.py` | Part 31 Cryptographic Suite | AES-256-GCM roundtrip, fresh nonce verification, tamper detection, HMAC-SHA256 correlation, secret leakage prevention, cross-org isolation |
 | `test_aes_gcm_privacy.py` | Part 30 Privacy Engine | Nonce uniqueness, key rotation, coordinate coarsening (AP_REGION_01), 15 Pre-Send Security Validation checks |
+| `test_demo_organizations_sharing.py` | Part 32 Cross-Org Sharing & Demo Orgs | KL & GITAM demo org seeding, synthetic people records, cross-org telemetry sharing, 15 privacy invariant validations |
 | `test_pre_send_pipeline.py` | Pre-Send Pipeline | Raw IP/PII removal, device pseudonymization, API key/JWT blocking, telemetry optimization |
 | `test_privacy_leakage.py` | Leakage Prevention | Central API rejection of unencrypted/raw IPs, locations, credentials, and usernames |
 | `test_privacy.py` | Privacy Engine | PII detection, credential `[REDACTED]` masking, HMAC-SHA256 pseudonymization |
@@ -34,7 +35,7 @@ The automated test suite is located in `backend/tests/` and built using `pytest`
 ## 3. Running Automated Tests
 
 ### 3.1 Backend Tests
-To run the complete test suite (96 tests) with verbose output:
+To run the complete test suite (111 tests) with verbose output:
 ```bash
 # Ensure Python virtual environment is activated
 python -m pytest backend/tests -v
@@ -42,6 +43,9 @@ python -m pytest backend/tests -v
 
 ### 3.2 Running Specific Test Suites
 ```bash
+# Run Part 32 Demo Organizations & Cross-Organization Sharing Suite (All 15 tests)
+python -m pytest backend/tests/test_demo_organizations_sharing.py -v
+
 # Run Part 31 Cryptographic Privacy Suite (All 15 tests)
 python -m pytest backend/tests/test_crypto_privacy.py -v
 
@@ -59,25 +63,25 @@ python -m pytest backend/tests/test_federated.py -v
 ```
 
 ### 3.3 Test Verification Results
-All 96 automated test cases execute and pass successfully (100% pass rate):
+All 111 automated test cases execute and pass successfully (100% pass rate):
 ```text
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_01_aes_256_gcm_roundtrip PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_02_ciphertext_must_not_equal_plaintext PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_03_fresh_nonce_per_encryption PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_04_modified_ciphertext_fails_authentication PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_05_modified_auth_tag_fails PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_06_wrong_encryption_key_fails PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_07_hmac_sha256_deterministic_pseudonym PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_08_different_ips_produce_different_hmac PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_09_hmac_output_never_contains_original_ip PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_10_outgoing_telemetry_contains_no_plaintext_sensitive_fields PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_11_secrets_never_in_frontend_javascript PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_12_secrets_never_in_next_public_variables PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_13_secrets_never_in_git_tracked_files PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_14_cross_org_receiver_sees_only_protected_representation PASSED
-backend/tests/test_crypto_privacy.py::TestPart31CryptographicPrivacy::test_15_public_demo_mode_never_exposes_keys_or_personal_telemetry PASSED
+backend/tests/test_demo_organizations_sharing.py::test_01_both_demo_organizations_load PASSED
+backend/tests/test_demo_organizations_sharing.py::test_02_synthetic_people_records_load PASSED
+backend/tests/test_demo_organizations_sharing.py::test_03_duplicate_organization_seeding_prevented PASSED
+backend/tests/test_demo_organizations_sharing.py::test_04_kl_to_gitam_sharing_works PASSED
+backend/tests/test_demo_organizations_sharing.py::test_05_gitam_to_kl_sharing_works PASSED
+backend/tests/test_demo_organizations_sharing.py::test_06_raw_ip_not_transmitted_when_prohibited PASSED
+backend/tests/test_demo_organizations_sharing.py::test_07_precise_gps_not_transmitted_when_prohibited PASSED
+backend/tests/test_demo_organizations_sharing.py::test_08_aes_gcm_encryption_decryption_works PASSED
+backend/tests/test_demo_organizations_sharing.py::test_09_modified_ciphertext_fails_authentication PASSED
+backend/tests/test_demo_organizations_sharing.py::test_10_wrong_key_fails_decryption PASSED
+backend/tests/test_demo_organizations_sharing.py::test_11_aes_gcm_fresh_nonce PASSED
+backend/tests/test_demo_organizations_sharing.py::test_12_hmac_pseudonyms_stable_for_same_input_key PASSED
+backend/tests/test_demo_organizations_sharing.py::test_13_credentials_blocked_before_transmission PASSED
+backend/tests/test_demo_organizations_sharing.py::test_14_receiver_cannot_access_original_sensitive_data PASSED
+backend/tests/test_demo_organizations_sharing.py::test_15_public_demo_mode_cannot_access_private_org_data PASSED
 ...
-======================== 96 passed in 75.64s (0:01:15) ========================
+======================= 111 passed in 77.59s (0:01:17) ========================
 ```
 
 ---

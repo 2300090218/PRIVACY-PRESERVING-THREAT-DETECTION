@@ -209,6 +209,30 @@ export interface Organization {
   active_agents: number;
   total_events: number;
   total_detections: number;
+  location?: string;
+  is_demo?: boolean;
+  demo_status?: string;
+  security_status?: string;
+  record_counts?: {
+    students?: number;
+    faculty?: number;
+    it_staff?: number;
+    security_staff?: number;
+    administrators?: number;
+    security_agents?: number;
+    total_records?: number;
+  };
+}
+
+export interface SyntheticPersonRecord {
+  record_id: string;
+  organization_id: string;
+  role: string;
+  pseudonym: string;
+  department?: string;
+  campus?: string;
+  status: string;
+  is_synthetic: boolean;
 }
 
 export interface AgentDevice {

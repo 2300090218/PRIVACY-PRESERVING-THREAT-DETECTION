@@ -10,12 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy import delete
 from sqlalchemy.future import select
 
 from backend.app.config import settings
 from backend.app.database import init_db, AsyncSessionLocal
 from backend.app.models.all_models import (
-    User, Client, ModelVersion, Organization, Agent, ApiCredential, PrivacyPolicyRecord
+    User, Client, ModelVersion, Organization, Agent, ApiCredential, PrivacyPolicyRecord, SyntheticRecord
 )
 from backend.app.security.authentication import get_password_hash
 from backend.app.security.security_headers import SecurityHeadersMiddleware
@@ -47,16 +48,133 @@ async def initialize_platform():
 
     # Seed default entities if empty
     async with AsyncSessionLocal() as session:
-        # 1. Seed Organizations
-        org_res = await session.execute(select(Organization))
-        if not org_res.scalars().first():
-            print("[Startup] Seeding multi-tenant organizations (Org A, Org B, Org C)...")
-            initial_orgs = [
-                Organization(org_id="org_enterprise_a", name="Enterprise Global A", status="ACTIVE", contact_email="security@org-a.internal"),
-                Organization(org_id="org_finance_b", name="Financial Services B", status="ACTIVE", contact_email="soc@finance-b.internal"),
-                Organization(org_id="org_cloud_c", name="Cloud Infrastructure C", status="ACTIVE", contact_email="cloud-sec@cloud-c.internal"),
+        # 1. Purge legacy test scratch entries
+        try:
+            await session.execute(delete(Organization).where(Organization.org_id.in_(["org_local_test_1", "org_local_test_2", "org_local_test_3"])))
+        except Exception:
+            pass
+
+        # 2. Seed / Update Multi-Tenant Demonstration Organizations
+        REQUIRED_ORGS = [
+            {
+                "org_id": "demo_klef_vijayawada",
+                "name": "KL University / KLEF",
+                "status": "ACTIVE",
+                "contact_email": "ciso@kluniversity.edu.in",
+                "location": "Vijayawada, Andhra Pradesh, India",
+                "is_demo": True,
+                "demo_status": "DEMO",
+                "security_status": "ACTIVE / SHIELDED",
+                "record_counts": {
+                    "students": 15420,
+                    "faculty": 1120,
+                    "it_staff": 85,
+                    "security_staff": 42,
+                    "administrators": 28,
+                    "security_agents": 14,
+                    "total_records": 16709
+                }
+            },
+            {
+                "org_id": "demo_gitam_visakhapatnam",
+                "name": "GITAM",
+                "status": "ACTIVE",
+                "contact_email": "infosec@gitam.edu",
+                "location": "Visakhapatnam, Andhra Pradesh, India",
+                "is_demo": True,
+                "demo_status": "DEMO",
+                "security_status": "ACTIVE / SHIELDED",
+                "record_counts": {
+                    "students": 12850,
+                    "faculty": 940,
+                    "it_staff": 65,
+                    "security_staff": 38,
+                    "administrators": 24,
+                    "security_agents": 12,
+                    "total_records": 13929
+                }
+            },
+            {
+                "org_id": "org_enterprise_a",
+                "name": "Enterprise Global A",
+                "status": "ACTIVE",
+                "contact_email": "security@org-a.internal",
+                "location": "Hyderabad, Telangana, India",
+                "is_demo": True,
+                "demo_status": "ENTERPRISE DEMO",
+                "security_status": "ACTIVE / PROTECTED",
+                "record_counts": {
+                    "students": 0, "faculty": 0, "it_staff": 120,
+                    "security_staff": 54, "administrators": 32, "security_agents": 8,
+                    "total_records": 214
+                }
+            },
+            {
+                "org_id": "org_finance_b",
+                "name": "Financial Services B",
+                "status": "ACTIVE",
+                "contact_email": "soc@finance-b.internal",
+                "location": "Mumbai, Maharashtra, India",
+                "is_demo": True,
+                "demo_status": "FINANCIAL DEMO",
+                "security_status": "ACTIVE / REGULATED",
+                "record_counts": {
+                    "students": 0, "faculty": 0, "it_staff": 80,
+                    "security_staff": 60, "administrators": 20, "security_agents": 6,
+                    "total_records": 166
+                }
+            },
+            {
+                "org_id": "org_cloud_c",
+                "name": "Cloud Infrastructure C",
+                "status": "ACTIVE",
+                "contact_email": "cloud-sec@cloud-c.internal",
+                "location": "Bengaluru, Karnataka, India",
+                "is_demo": True,
+                "demo_status": "CLOUD DEMO",
+                "security_status": "ACTIVE / HARDENED",
+                "record_counts": {
+                    "students": 0, "faculty": 0, "it_staff": 95,
+                    "security_staff": 45, "administrators": 18, "security_agents": 10,
+                    "total_records": 168
+                }
+            }
+        ]
+
+        for o_info in REQUIRED_ORGS:
+            o_res = await session.execute(select(Organization).where(Organization.org_id == o_info["org_id"]))
+            existing_org = o_res.scalars().first()
+            if not existing_org:
+                session.add(Organization(**o_info))
+            else:
+                for k, v in o_info.items():
+                    if k != "org_id" and hasattr(existing_org, k):
+                        setattr(existing_org, k, v)
+
+        # 3. Seed Synthetic Personnel & Agent Records for Academic Demos
+        syn_res = await session.execute(select(SyntheticRecord))
+        if not syn_res.scalars().first():
+            print("[Startup] Seeding synthetic demonstration personnel records...")
+            demo_people = [
+                # KL University
+                SyntheticRecord(record_id="rec_klu_stu_001", organization_id="demo_klef_vijayawada", role="STUDENT", pseudonym="SYNTH-STU-KLU-001", department="Computer Science & Engineering", campus="Vaddeswaram Campus"),
+                SyntheticRecord(record_id="rec_klu_stu_002", organization_id="demo_klef_vijayawada", role="STUDENT", pseudonym="SYNTH-STU-KLU-002", department="Cybersecurity & Forensics", campus="Vaddeswaram Campus"),
+                SyntheticRecord(record_id="rec_klu_fac_101", organization_id="demo_klef_vijayawada", role="FACULTY", pseudonym="SYNTH-FAC-KLU-101", department="Dept of Cyber Security", campus="Faculty Block 1"),
+                SyntheticRecord(record_id="rec_klu_it_201", organization_id="demo_klef_vijayawada", role="IT_STAFF", pseudonym="SYNTH-IT-KLU-201", department="Campus Network Center", campus="Admin Central"),
+                SyntheticRecord(record_id="rec_klu_sec_301", organization_id="demo_klef_vijayawada", role="SECURITY_STAFF", pseudonym="SYNTH-SEC-KLU-301", department="Information Security Cell", campus="SOC Tower"),
+                SyntheticRecord(record_id="rec_klu_adm_401", organization_id="demo_klef_vijayawada", role="ADMINISTRATOR", pseudonym="SYNTH-ADM-KLU-401", department="Registrar Operations", campus="Main Building"),
+                SyntheticRecord(record_id="rec_klu_agt_501", organization_id="demo_klef_vijayawada", role="SECURITY_AGENT", pseudonym="SYNTH-AGT-KLU-501", department="Border Firewall Probe", campus="DMZ Server Room"),
+                
+                # GITAM
+                SyntheticRecord(record_id="rec_gitam_stu_001", organization_id="demo_gitam_visakhapatnam", role="STUDENT", pseudonym="SYNTH-STU-GITAM-001", department="Computer Science & Technology", campus="Visakhapatnam Main"),
+                SyntheticRecord(record_id="rec_gitam_stu_002", organization_id="demo_gitam_visakhapatnam", role="STUDENT", pseudonym="SYNTH-STU-GITAM-002", department="Information Technology", campus="Visakhapatnam Main"),
+                SyntheticRecord(record_id="rec_gitam_fac_101", organization_id="demo_gitam_visakhapatnam", role="FACULTY", pseudonym="SYNTH-FAC-GITAM-101", department="Dept of CSE & Data Science", campus="Bhavan Block"),
+                SyntheticRecord(record_id="rec_gitam_it_201", organization_id="demo_gitam_visakhapatnam", role="IT_STAFF", pseudonym="SYNTH-IT-GITAM-201", department="Central IT Services", campus="ICT Wing"),
+                SyntheticRecord(record_id="rec_gitam_sec_301", organization_id="demo_gitam_visakhapatnam", role="SECURITY_STAFF", pseudonym="SYNTH-SEC-GITAM-301", department="Cyber Defense Team", campus="Security Operations"),
+                SyntheticRecord(record_id="rec_gitam_adm_401", organization_id="demo_gitam_visakhapatnam", role="ADMINISTRATOR", pseudonym="SYNTH-ADM-GITAM-401", department="Academic Administration", campus="Executive Building"),
+                SyntheticRecord(record_id="rec_gitam_agt_501", organization_id="demo_gitam_visakhapatnam", role="SECURITY_AGENT", pseudonym="SYNTH-AGT-GITAM-501", department="Perimeter Gateway Sensor", campus="Network Core"),
             ]
-            session.add_all(initial_orgs)
+            session.add_all(demo_people)
 
         # 2. Users (Admin & Security Analyst)
         admin_res = await session.execute(select(User).where(User.username == "admin"))
@@ -104,6 +222,22 @@ async def initialize_platform():
                 hashed_secret=hashlib.sha256(dmz_key.encode("utf-8")).hexdigest(),
                 name="DMZ Gateway Production Key"
             ))
+
+        # Academic Edge Agents (Idempotent check)
+        academic_agents = [
+            ("agent-klef-01", "demo_klef_vijayawada", "KLEF Campus Security Gateway Agent"),
+            ("agent-gitam-01", "demo_gitam_visakhapatnam", "GITAM Perimeter Defense Sensor"),
+        ]
+        for ag_id, o_id, ag_name in academic_agents:
+            ag_check = await session.execute(select(Agent).where(Agent.agent_id == ag_id))
+            if not ag_check.scalars().first():
+                session.add(Agent(
+                    agent_id=ag_id,
+                    organization_id=o_id,
+                    name=ag_name,
+                    status="ONLINE",
+                    version="1.0.0"
+                ))
 
         # 4. Default Privacy Policy Rules (Enterprise Data Minimization)
         policy_res = await session.execute(select(PrivacyPolicyRecord))

@@ -73,11 +73,36 @@ class OrganizationResponse(BaseModel):
     org_id: str
     name: str
     status: str
-    contact_email: Optional[str]
+    contact_email: Optional[str] = None
+    location: Optional[str] = "Andhra Pradesh, India"
+    is_demo: Optional[bool] = False
+    demo_status: Optional[str] = "DEMO"
+    security_status: Optional[str] = "ACTIVE / SHIELDED"
+    record_counts: Optional[Dict[str, int]] = Field(default_factory=dict)
     created_at: datetime
     active_agents: int = 0
     total_events: int = 0
     total_detections: int = 0
+
+class SyntheticRecordResponse(BaseModel):
+    record_id: str
+    organization_id: str
+    role: str
+    pseudonym: str
+    department: Optional[str] = None
+    campus: Optional[str] = None
+    status: str = "ACTIVE"
+    is_synthetic: bool = True
+
+class OrganizationRecordsResponse(BaseModel):
+    organization_id: str
+    org_id: Optional[str] = None
+    organization_name: str
+    location: str
+    demo_status: str
+    security_status: str
+    record_counts: Dict[str, int]
+    records: List[SyntheticRecordResponse]
 
 class AgentRegisterRequest(BaseModel):
     agent_id: str = Field(..., min_length=3, max_length=64)
@@ -157,3 +182,23 @@ class SystemHealthResponse(BaseModel):
     agents: Dict[str, Any]
     ml_model: Dict[str, Any]
     queue: Dict[str, Any]
+
+class CrossOrgShareRequest(BaseModel):
+    sender_org_id: str = Field(default="demo_klef_vijayawada", description="Originating organization ID")
+    receiver_org_id: str = Field(default="demo_gitam_visakhapatnam", description="Peer recipient organization ID")
+    event_payload: Optional[Dict[str, Any]] = Field(default=None, description="Optional custom synthetic security event")
+    inject_sensitive_field: Optional[str] = Field(default=None, description="Optional trigger for testing pre-send blocks: 'password', 'raw_ip', 'jwt', 'precise_gps'")
+
+class CrossOrgShareResponse(BaseModel):
+    sender_organization: Dict[str, Any]
+    receiver_organization: Dict[str, Any]
+    synthetic_input_event: Dict[str, Any]
+    detected_sensitive_fields: List[str]
+    privacy_transformations: List[Dict[str, Any]]
+    threat_inspection_result: Dict[str, Any]
+    final_outgoing_payload: Optional[Dict[str, Any]]
+    presend_validation: Dict[str, Any]
+    decision: str # "SEND" or "BLOCK"
+    reason: str
+    receiver_view: Optional[Dict[str, Any]]
+

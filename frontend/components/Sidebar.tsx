@@ -25,6 +25,7 @@ const NAV_ITEMS = [
   { label: "Organizations", href: "/organizations", icon: Building2 },
   { label: "Privacy Center", href: "/privacy", icon: Lock },
   { label: "Transformation Viewer", href: "/privacy/viewer", icon: Eye },
+  { label: "Cross-Org Sharing", href: "/privacy/sharing", icon: Share2 },
   { label: "Minimization Policies", href: "/privacy/policies", icon: Sliders },
   { label: "Audit Logs", href: "/audit", icon: FileText },
   { label: "System Health", href: "/health", icon: Activity },

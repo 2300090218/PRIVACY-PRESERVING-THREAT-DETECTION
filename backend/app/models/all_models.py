@@ -27,6 +27,30 @@ class Organization(Base):
     name = Column(String(128), nullable=False)
     status = Column(String(32), default="ACTIVE", index=True) # ACTIVE, SUSPENDED
     contact_email = Column(String(128), nullable=True)
+    location = Column(String(128), default="Andhra Pradesh, India", nullable=True)
+    is_demo = Column(Boolean, default=True)
+    demo_status = Column(String(32), default="DEMO")
+    security_status = Column(String(32), default="ACTIVE / SHIELDED")
+    record_counts = Column(JSON, default=dict)
+    created_at = Column(DateTime, default=utcnow)
+
+class SyntheticRecord(Base):
+    """
+    Synthetic demonstration records for academic entities (Students, Faculty, IT Staff,
+    Security Staff, Administrators, and Security Agents).
+    Purely synthetic and pseudonymous; contains zero real personal data.
+    """
+    __tablename__ = "synthetic_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    record_id = Column(String(64), unique=True, index=True, nullable=False)
+    organization_id = Column(String(64), index=True, nullable=False)
+    role = Column(String(32), index=True, nullable=False) # STUDENT, FACULTY, IT_STAFF, SECURITY_STAFF, ADMINISTRATOR, SECURITY_AGENT
+    pseudonym = Column(String(128), nullable=False)
+    department = Column(String(64), nullable=True)
+    campus = Column(String(64), nullable=True)
+    status = Column(String(32), default="ACTIVE")
+    is_synthetic = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utcnow)
 
 class User(Base):
