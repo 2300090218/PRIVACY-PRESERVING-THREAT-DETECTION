@@ -6,15 +6,28 @@ Loads settings from environment variables or .env file with validated defaults.
 import os
 import json
 import tempfile
-from typing import List, Union
+from typing import List, Union, Any
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TMP_DIR = "/tmp" if os.path.exists("/tmp") else tempfile.gettempdir()
 TMP_DB_PATH = os.path.join(TMP_DIR, "threat_detection.db").replace("\\", "/")
 
 class Settings(BaseSettings):
+    @model_validator(mode="before")
+    @classmethod
+    def clean_empty_strings(cls, values: Any) -> Any:
+        """Strips out empty environment variables so strong defaults are used on Vercel."""
+        if isinstance(values, dict):
+            cleaned = {}
+            for k, v in values.items():
+                if isinstance(v, str) and not v.strip():
+                    continue
+                cleaned[k] = v
+            return cleaned
+        return values
+
     APP_NAME: str = "Privacy-Preserving Threat Detection"
     APP_ENV: str = "development"
     DEBUG: bool = True
