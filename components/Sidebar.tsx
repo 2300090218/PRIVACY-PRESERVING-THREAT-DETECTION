@@ -33,8 +33,13 @@ const NAV_ITEMS = [
   { label: "Federated Learning", href: "/federated-learning", icon: Share2 },
 ];
 
+import { IS_DEMO_MODE, isAuthenticated } from "@/lib/config";
+
+const ADMIN_PATHS = ["/organizations", "/privacy/policies", "/audit"];
+
 export function Sidebar() {
   const pathname = usePathname();
+  const authed = isAuthenticated();
 
   return (
     <aside className="w-64 bg-slate-50/80 border-r border-slate-200 flex flex-col justify-between shrink-0 select-none">
@@ -46,6 +51,8 @@ export function Sidebar() {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+            const isProtectedAdmin = ADMIN_PATHS.includes(item.href);
+
             return (
               <Link
                 key={item.href}
@@ -58,6 +65,12 @@ export function Sidebar() {
               >
                 <Icon className={`h-4 w-4 ${isActive ? "text-indigo-600" : "text-slate-400"}`} />
                 <span>{item.label}</span>
+                {IS_DEMO_MODE && !authed && isProtectedAdmin && (
+                  <span className="ml-auto flex items-center gap-1 text-[9px] font-mono font-bold text-amber-800 bg-amber-100/90 px-1.5 py-0.5 rounded border border-amber-300">
+                    <Lock className="h-2.5 w-2.5 text-amber-700" />
+                    <span>ADMIN</span>
+                  </span>
+                )}
               </Link>
             );
           })}

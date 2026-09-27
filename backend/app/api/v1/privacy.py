@@ -150,38 +150,131 @@ async def demonstrate_privacy_transformation(
     custom_raw: Optional[Dict[str, Any]] = None
 ):
     """
-    Demonstrates the live transformation pipeline for the Privacy Transformation Viewer:
-    LOCAL RAW EVENT -> PRIVACY GATEWAY -> TRANSMITTED PROTECTED EVENT.
+    Demonstrates the live transformation pipeline for the Privacy Transformation Viewer (Part 30):
+    LOCAL RAW EVENT -> PRIVACY GATEWAY (AES-256-GCM, HMAC-SHA-256, COARSENING) -> 15 PRE-SEND CHECKS -> TRANSMITTED PROTECTED EVENT.
     """
+    from privacy_gateway.leakage_prevention import validate_presend_security
+
     raw = custom_raw or {
-        "event_id": "evt_raw_sample_984",
-        "username": "sarah.connor",
-        "source_ip": "192.168.1.120",
-        "device_id": "SEC-SURFACE-PRO9",
-        "location": "Regional Operations Center, Level 2",
-        "event_type": "failed_login",
-        "failed_attempts": 7,
-        "destination_port": 443,
+        "event_id": "evt_kl_univ_1092",
+        "username": "Demo Student",
+        "source_ip": "192.168.25.44",
+        "device_id": "device-123",
+        "latitude": 16.5062,
+        "longitude": 80.6480,
+        "sensitive_location": "Regional Datacenter KL",
+        "event_type": "port_scan",
+        "severity": "HIGH",
+        "failed_attempts": 0,
+        "destination_port": 4444,
         "protocol": "TCP",
-        "attack_indicators": ["AUTH_FAILURE_BURST"],
-        "timestamp": "2026-09-22T08:15:30Z"
+        "attack_indicators": ["SYN_PORT_SWEEP"],
+        "timestamp": "2026-09-27T10:30:00Z"
     }
 
     gateway = PrivacyGateway()
     protected = gateway.transform_event(raw)
 
-    transformations_meta = {
-        "policy_name": "Enterprise Boundary Privacy Baseline",
-        "removed_fields": ["username", "source_ip", "location"],
-        "pseudonymized_fields": [f"device_id -> {protected.get('device_id')}"],
-        "allowed_indicators": ["event_type", "failed_attempts", "attack_indicators", "timestamp", "protocol", "destination_port"]
+    # Execute 15 Pre-Send Security Validation checks
+    is_safe, violations, presend_report = validate_presend_security(protected)
+
+    # Build Transformation Viewer Comparison Table required by Part 30
+    transformation_table = [
+        {
+            "field": "Source IP",
+            "original": raw.get("source_ip", "192.168.25.44"),
+            "transformation": "HMAC-SHA-256",
+            "protected": protected.get("source", "hmac-sha256:v1:..."),
+            "status": "PSEUDONYMIZED",
+            "security_type": "Keyed One-Way Pseudonymization"
+        },
+        {
+            "field": "Latitude",
+            "original": str(raw.get("latitude", 16.5062)),
+            "transformation": "COARSENED",
+            "protected": protected.get("location_zone", "AP_REGION_01"),
+            "status": "COARSENED",
+            "security_type": "Privacy-Preserving Generalization"
+        },
+        {
+            "field": "Longitude",
+            "original": str(raw.get("longitude", 80.6480)),
+            "transformation": "COARSENED",
+            "protected": protected.get("location_zone", "AP_REGION_01"),
+            "status": "COARSENED",
+            "security_type": "Privacy-Preserving Generalization"
+        },
+        {
+            "field": "Username",
+            "original": raw.get("username", "Demo Student"),
+            "transformation": "REMOVED",
+            "protected": "[EXCLUDED - ZERO EGRESS]",
+            "status": "REMOVED",
+            "security_type": "Data Minimization / Stripped"
+        },
+        {
+            "field": "Device ID",
+            "original": raw.get("device_id", "device-123"),
+            "transformation": "PSEUDONYMIZED",
+            "protected": protected.get("device_id", "DEV-..."),
+            "status": "PSEUDONYMIZED",
+            "security_type": "Salted HMAC-SHA-256"
+        },
+        {
+            "field": "Threat Type",
+            "original": raw.get("event_type", "port_scan"),
+            "transformation": "RETAINED",
+            "protected": protected.get("event_type", "port_scan"),
+            "status": "RETAINED",
+            "security_type": "Non-Sensitive Threat Telemetry"
+        },
+        {
+            "field": "Severity",
+            "original": raw.get("severity", "HIGH"),
+            "transformation": "RETAINED",
+            "protected": protected.get("severity", "HIGH"),
+            "status": "RETAINED",
+            "security_type": "Non-Sensitive Alert Indicator"
+        },
+        {
+            "field": "Sensitive Location",
+            "original": raw.get("sensitive_location", "Regional Datacenter KL"),
+            "transformation": "AES-256-GCM",
+            "protected": protected.get("sensitive_location_encrypted", f"enc:aes256gcm:v1:privacy-key-v1:..."),
+            "status": "ENCRYPTED",
+            "security_type": "Authenticated Field-Level Encryption"
+        }
+    ]
+
+    cross_organization_flow = {
+        "origin_organization": "KL UNIVERSITY",
+        "raw_source_ip": "192.168.25.44",
+        "raw_coordinates": "16.5062, 80.6480",
+        "gateway_transformation": "HMAC-SHA-256 + Geolocation Coarsening",
+        "central_server_received": {
+            "source": protected.get("source"),
+            "location_zone": protected.get("location_zone"),
+            "event_type": protected.get("event_type")
+        },
+        "peer_organization": "GITAM",
+        "peer_view": {
+            "protected_identifier": protected.get("source"),
+            "location_zone": protected.get("location_zone"),
+            "raw_ip_accessible": False,
+            "raw_gps_accessible": False
+        }
     }
 
     return {
         "stage_1_raw_local_event": raw,
-        "stage_2_privacy_transformation": transformations_meta,
+        "stage_2_privacy_transformation": protected.get("privacy_metadata", {}),
         "stage_3_transmitted_protected_event": protected,
         "protected_event": protected,
-        "transformations": transformations_meta,
-        "transformations_count": len(transformations_meta["removed_fields"]) + len(transformations_meta["pseudonymized_fields"])
+        "transformations": transformation_table,
+        "transformation_viewer_table": transformation_table,
+        "presend_validation": presend_report,
+        "cross_organization_flow": cross_organization_flow,
+        "status": "SAFE" if is_safe else "BLOCKED",
+        "reason": "All 15 pre-send privacy and security validation checks verified successfully." if is_safe else "Privacy validation failed."
     }
+

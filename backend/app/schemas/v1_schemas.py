@@ -34,6 +34,14 @@ class ProtectedEventIngest(BaseModel):
     features: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Pre-computed numeric flow features")
     is_test: Optional[bool] = Field(default=False, description="Explicit test flag")
 
+    # Part 30 - Protected IP and Geolocation Representations
+    location_zone: Optional[str] = Field(default=None, description="Coarsened regional zone identifier (e.g. AP_REGION_01)")
+    latitude_encrypted: Optional[str] = Field(default=None, description="AES-256-GCM encrypted latitude")
+    longitude_encrypted: Optional[str] = Field(default=None, description="AES-256-GCM encrypted longitude")
+    source_ip_encrypted: Optional[str] = Field(default=None, description="AES-256-GCM encrypted source IP")
+    sensitive_location: Optional[str] = Field(default=None, description="Protected sensitive location representation")
+    sensitive_location_encrypted: Optional[str] = Field(default=None, description="AES-256-GCM encrypted sensitive location")
+
     @field_validator("source", "device_id", mode="before")
     @classmethod
     def assert_not_raw_pii(cls, v: Optional[str]) -> Optional[str]:
@@ -45,6 +53,15 @@ class ProtectedEventIngest(BaseModel):
             if "@" in v and not v.startswith("USER-"):
                 raise ValueError(f"Second Safety Boundary Rejection: Raw email address '{v}' is prohibited from entering Central Server!")
         return v
+
+    @field_validator("latitude_encrypted", "longitude_encrypted", "source_ip_encrypted", mode="before")
+    @classmethod
+    def assert_valid_encryption_format(cls, v: Optional[str]) -> Optional[str]:
+        if v and isinstance(v, str):
+            if not v.startswith("enc:aes256gcm:v1:"):
+                raise ValueError(f"Second Safety Boundary Rejection: Field must be AES-256-GCM encrypted format (enc:aes256gcm:v1:...)!")
+        return v
+
 
 class OrganizationCreate(BaseModel):
     org_id: str = Field(..., min_length=3, max_length=64)

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { ClientShell } from "@/components/ClientShell";
 import { api } from "@/lib/api";
 import { Organization } from "@/types";
+import { IS_DEMO_MODE, isAuthenticated } from "@/lib/config";
 import { Building2, Shield, Plus, CheckCircle, RefreshCw, Server, AlertCircle } from "lucide-react";
 
 export default function OrganizationsPage() {
@@ -35,6 +36,13 @@ export default function OrganizationsPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (IS_DEMO_MODE && !isAuthenticated()) {
+      setFeedback({
+        type: "error",
+        text: "Organization registration is disabled in Public Demo Mode. Authenticate with Enterprise credentials.",
+      });
+      return;
+    }
     if (!newOrgId || !newOrgName) return;
     setSubmitting(true);
     setFeedback(null);
@@ -96,6 +104,25 @@ export default function OrganizationsPage() {
             </button>
           </div>
         </div>
+
+        {IS_DEMO_MODE && !isAuthenticated() && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900 font-mono">
+                PUBLIC DEMO MODE
+              </span>
+              <span>
+                Organization provisioning and API key generation are disabled in Public Demo Mode. Authenticate with Enterprise Administrator credentials to register organizations or generate sensor keys.
+              </span>
+            </div>
+            <a
+              href="/login"
+              className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 underline whitespace-nowrap ml-4"
+            >
+              Sign In &rarr;
+            </a>
+          </div>
+        )}
 
         {feedback && (
           <div

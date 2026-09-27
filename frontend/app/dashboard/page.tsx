@@ -34,6 +34,7 @@ import { ClientShell } from "@/components/ClientShell";
 import { MetricCard } from "@/components/MetricCard";
 import { ThreatMap } from "@/components/ThreatMap";
 import { api } from "@/lib/api";
+import { IS_DEMO_MODE } from "@/lib/config";
 import { useWebSocketTelemetry, WSEventMessage } from "@/lib/websocket";
 import {
   SecurityEvent,
@@ -170,6 +171,34 @@ export default function DashboardPage() {
 
   return (
     <ClientShell>
+      {/* PUBLIC DEMO MODE NOTIFICATION BANNER */}
+      {IS_DEMO_MODE && (
+        <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/60 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-700 shrink-0">
+              <Lock className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-900 tracking-tight">PUBLIC DEMO MODE</span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                  TEST DATA ONLY
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                This public demonstration operates on isolated synthetic telemetry and held-out test splits. Real organization credentials, API keys, database internals, and private telemetry are cryptographically protected and not accessible.
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 font-semibold flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              SAFE DEMO ENVIRONMENT
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* SECTION 1: TOP STATS ROW */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <MetricCard

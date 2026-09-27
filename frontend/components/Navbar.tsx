@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { WSStatus } from "@/types";
+import { IS_DEMO_MODE } from "@/lib/config";
 
 interface NavbarProps {
   wsStatus: WSStatus;
@@ -147,10 +148,20 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
         {/* Right: Operational Status Badges & Test Mode Action Button */}
         <div className="flex items-center gap-3">
           {/* Operational Mode Badge */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
-            <span>{mode === "TEST" ? "TEST MODE" : "LIVE MODE"}</span>
-          </div>
+          {IS_DEMO_MODE ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-sm">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>PUBLIC DEMO MODE</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 bg-amber-100 rounded text-amber-900 border border-amber-200">
+                TEST DATA ONLY
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>{mode === "TEST" ? "TEST MODE" : "LIVE MODE"}</span>
+            </div>
+          )}
 
           {/* Continuous Monitoring Active Live Indicator */}
           {isMonitoring && (

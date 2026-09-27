@@ -11,8 +11,19 @@ from privacy_gateway.policy_engine import (
     default_policy_config,
     create_default_policy_config,
 )
+from privacy_gateway.encryption import (
+    encrypt_aes_256_gcm,
+    decrypt_aes_256_gcm,
+    pseudonymize_hmac_sha256,
+    coarsen_geolocation,
+    is_valid_aes_256_gcm_token,
+    is_valid_hmac_sha256_token,
+    KeyManager,
+    default_key_manager,
+)
 from privacy_gateway.leakage_prevention import (
     validate_protected_payload,
+    validate_presend_security,
     evaluate_safety_decision,
     SafetyVerdict,
     FORBIDDEN_RAW_FIELDS,
@@ -40,7 +51,16 @@ __all__ = [
     "PrivacyPolicyConfig",
     "default_policy_config",
     "create_default_policy_config",
+    "encrypt_aes_256_gcm",
+    "decrypt_aes_256_gcm",
+    "pseudonymize_hmac_sha256",
+    "coarsen_geolocation",
+    "is_valid_aes_256_gcm_token",
+    "is_valid_hmac_sha256_token",
+    "KeyManager",
+    "default_key_manager",
     "validate_protected_payload",
+    "validate_presend_security",
     "evaluate_safety_decision",
     "SafetyVerdict",
     "FORBIDDEN_RAW_FIELDS",
@@ -55,3 +75,4 @@ __all__ = [
     "PreSendPipeline",
     "PreSendResult",
 ]
+

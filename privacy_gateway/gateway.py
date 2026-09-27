@@ -18,8 +18,16 @@ from privacy_gateway.policy_engine import (
     PolicyAction,
     default_policy_config
 )
+from privacy_gateway.encryption import (
+    encrypt_aes_256_gcm,
+    pseudonymize_hmac_sha256,
+    coarsen_geolocation,
+    KeyManager,
+    default_key_manager
+)
 from privacy_gateway.leakage_prevention import (
     validate_protected_payload,
+    validate_presend_security,
     evaluate_safety_decision,
     SafetyVerdict,
     FORBIDDEN_RAW_FIELDS,
@@ -193,6 +201,8 @@ class PrivacyGateway:
         salt: str = "local-privacy-salt-isolated-hmac-32",
         organization_id: Optional[str] = None,
         pseudonym_salt: Optional[str] = None,
+        key_manager: Optional[KeyManager] = None,
+        key_id: str = "privacy-key-v1",
         **kwargs
     ):
         effective_salt = pseudonym_salt or salt
@@ -200,12 +210,26 @@ class PrivacyGateway:
         if organization_id:
             self.policy_config.organization_id = organization_id
         self.salt = effective_salt.encode("utf-8")
+        self.key_manager = key_manager or default_key_manager
+        self.key_id = key_id
         self.pre_send_pipeline = PreSendPipeline(gateway=self)
 
     def generate_pseudonym(self, raw_value: str, prefix: str = "DEV") -> str:
         """Generates a reproducible, salted HMAC-SHA256 pseudonym token."""
         h = hmac.new(self.salt, raw_value.encode("utf-8"), hashlib.sha256).hexdigest()[:8].upper()
         return f"{prefix}-{h}"
+
+    def pseudonymize_ip(self, raw_ip: str) -> str:
+        """Generates a deterministic HMAC-SHA-256 pseudonym for correlation without exposing raw IP."""
+        return pseudonymize_hmac_sha256(raw_ip, secret=self.salt.decode("utf-8"))
+
+    def encrypt_value(self, val: Any, key_id: Optional[str] = None) -> str:
+        """Encrypts sensitive field using AES-256-GCM with authenticated tag and unique nonce."""
+        return encrypt_aes_256_gcm(str(val), key_id=key_id or self.key_id, key_manager=self.key_manager)
+
+    def coarsen_location(self, lat: float, lon: float) -> str:
+        """Coarsens precise GPS coordinates into a privacy-preserving regional identifier."""
+        return coarsen_geolocation(lat, lon)
 
     def mask_value(self, val: Any, params: Dict[str, Any]) -> str:
         s = str(val)
@@ -239,19 +263,55 @@ class PrivacyGateway:
     def transform_event(self, raw_event: Dict[str, Any]) -> Dict[str, Any]:
         """
         Takes a raw local security event, applies field policies,
-        sanitizes inline PII, checks leakage boundaries, and produces a protected event.
+        sanitizes inline PII, executes AES-256-GCM / HMAC-SHA-256 / Coarsening,
+        checks leakage boundaries, and produces a protected event.
         """
         removed_count = 0
         masked_count = 0
         pseudo_count = 0
+        encrypted_count = 0
+        coarsened_count = 0
+
         removed_field_names = []
         masked_field_names = []
         pseudo_field_names = []
+        encrypted_field_names = []
+        coarsened_field_names = []
 
         protected: Dict[str, Any] = {}
+        handled_special_fields = set()
+
+        # Handle Geolocation Pair (latitude, longitude)
+        if "latitude" in raw_event and "longitude" in raw_event:
+            lat_action = self.policy_config.get_action("latitude")
+            lon_action = self.policy_config.get_action("longitude")
+
+            if lat_action == PolicyAction.COARSEN or lon_action == PolicyAction.COARSEN:
+                zone = self.coarsen_location(raw_event["latitude"], raw_event["longitude"])
+                protected["location_zone"] = zone
+                coarsened_count += 2
+                coarsened_field_names.append(f"latitude,longitude -> {zone}")
+                handled_special_fields.add("latitude")
+                handled_special_fields.add("longitude")
+            elif lat_action == PolicyAction.ENCRYPT or lon_action == PolicyAction.ENCRYPT:
+                protected["latitude_encrypted"] = self.encrypt_value(raw_event["latitude"])
+                protected["longitude_encrypted"] = self.encrypt_value(raw_event["longitude"])
+                encrypted_count += 2
+                encrypted_field_names.append(f"latitude -> {protected['latitude_encrypted']}")
+                encrypted_field_names.append(f"longitude -> {protected['longitude_encrypted']}")
+                handled_special_fields.add("latitude")
+                handled_special_fields.add("longitude")
+            elif lat_action == PolicyAction.REMOVE and lon_action == PolicyAction.REMOVE:
+                removed_count += 2
+                removed_field_names.extend(["latitude", "longitude"])
+                handled_special_fields.add("latitude")
+                handled_special_fields.add("longitude")
 
         # 1. Process Each Field in the Raw Event
         for field, value in raw_event.items():
+            if field in handled_special_fields:
+                continue
+
             field_lower = field.lower()
             action = self.policy_config.get_action(field_lower)
             policy = self.policy_config.get_policy(field_lower)
@@ -268,12 +328,40 @@ class PrivacyGateway:
                 masked_count += 1
                 masked_field_names.append(field)
 
+            elif action == PolicyAction.ENCRYPT:
+                enc_token = self.encrypt_value(value, key_id=params.get("key_id"))
+                target_field = params.get("target_field") or (
+                    f"{field}_encrypted" if not field.endswith("_encrypted") else field
+                )
+                protected[target_field] = enc_token
+                encrypted_count += 1
+                encrypted_field_names.append(f"{field}->{enc_token}")
+
+            elif action == PolicyAction.COARSEN:
+                if field_lower in {"location", "exact_location"}:
+                    zone = "AP_REGION_01" if any(x in str(value).lower() for x in ["kl", "vaddeswaram", "andhra"]) else "REGIONAL_ZONE_01"
+                    protected["location_zone"] = zone
+                    coarsened_count += 1
+                    coarsened_field_names.append(f"{field}->{zone}")
+                else:
+                    zone = "ZONE_GENERAL"
+                    protected["location_zone"] = zone
+                    coarsened_count += 1
+                    coarsened_field_names.append(f"{field}->{zone}")
+
             elif action == PolicyAction.PSEUDONYMIZE:
-                prefix = params.get("prefix", "PSEUDO")
-                pseudo_token = self.generate_pseudonym(str(value), prefix=prefix)
-                protected[field] = pseudo_token
-                pseudo_count += 1
-                pseudo_field_names.append(f"{field}->{pseudo_token}")
+                # Part 30: When field is an IP address or specifies HMAC-SHA-256, use HMAC-SHA-256
+                if field_lower in {"source_ip", "ip_address", "client_ip"} or params.get("algorithm") == "HMAC-SHA-256" or params.get("format") == "hmac-sha256:v1":
+                    pseudo_token = self.pseudonymize_ip(str(value))
+                    protected["source"] = pseudo_token
+                    pseudo_count += 1
+                    pseudo_field_names.append(f"{field}->{pseudo_token}")
+                else:
+                    prefix = params.get("prefix", "DEV" if "device" in field_lower else "PSEUDO")
+                    pseudo_token = self.generate_pseudonym(str(value), prefix=prefix)
+                    protected[field] = pseudo_token
+                    pseudo_count += 1
+                    pseudo_field_names.append(f"{field}->{pseudo_token}")
 
             elif action == PolicyAction.AGGREGATE:
                 agg_val = self.aggregate_value(value, params)
@@ -303,11 +391,15 @@ class PrivacyGateway:
             "removed_count": removed_count,
             "masked_count": masked_count,
             "pseudonymized_count": pseudo_count,
+            "encrypted_count": encrypted_count,
+            "coarsened_count": coarsened_count,
             "removed_fields": removed_field_names,
             "pseudonymized_fields": pseudo_field_names,
+            "encrypted_fields": encrypted_field_names,
+            "coarsened_fields": coarsened_field_names,
         }
 
-        # 3. Pre-Flight Boundary Verification (Double Check Before Emitting)
+        # 3. Pre-Flight Boundary Verification (15 Pre-Send Security Checks)
         is_safe, violations = validate_protected_payload(protected)
         if not is_safe:
             privacy_metrics.record_violation()
@@ -324,6 +416,7 @@ class PrivacyGateway:
         )
 
         return protected
+
 
     process_raw_event = transform_event
 

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Shield, Lock, User, Key, CheckCircle2, AlertCircle } from "lucide-react";
 import { API_BASE } from "@/lib/api";
+import { IS_DEMO_MODE } from "@/lib/config";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,18 @@ export default function LoginPage() {
   const [password, setPassword] = useState("AdminPass123!");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [adminNotice, setAdminNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reason") === "admin_required") {
+        setAdminNotice(
+          "Enterprise Administrator credentials required. Multi-tenant organization management, minimization policy configurations, and private audit trails are restricted."
+        );
+      }
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +65,16 @@ export default function LoginPage() {
             Enterprise Security Operations & Federated Learning Console
           </p>
         </div>
+
+        {adminNotice && (
+          <div className="bg-amber-50 border border-amber-300 text-amber-950 text-xs px-3.5 py-3 rounded-xl flex items-start gap-2.5 shadow-xs">
+            <Lock className="h-4 w-4 shrink-0 text-amber-700 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-bold tracking-tight block text-amber-900">Enterprise Authentication Required</span>
+              <p className="text-[11px] text-amber-800 leading-relaxed">{adminNotice}</p>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs px-3.5 py-2.5 rounded-lg flex items-center gap-2">
@@ -97,6 +120,22 @@ export default function LoginPage() {
             {isLoading ? "Authenticating..." : "Sign In to Operations Console"}
           </button>
         </form>
+
+        {IS_DEMO_MODE && (
+          <div className="pt-2 border-t border-slate-200 space-y-2">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="w-full py-2.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+            >
+              <Shield className="h-4 w-4 text-amber-600" />
+              <span>Enter Public Demo Mode &rarr;</span>
+            </button>
+            <p className="text-[10px] text-center text-slate-500 font-medium">
+              Access the interactive dashboard with sanitized test data without logging in
+            </p>
+          </div>
+        )}
 
         <div className="pt-2 border-t border-slate-100 text-center">
           <p className="text-[11px] text-slate-400">

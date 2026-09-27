@@ -9,6 +9,8 @@ export const metadata: Metadata = {
   description: "Enterprise Collaborative Cybersecurity with Federated Learning & PII Pseudonymization",
 };
 
+import { AuthGuard } from "@/components/AuthGuard";
+
 export default function RootLayout({
   children,
 }: {
@@ -17,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full bg-slate-100">
       <body className={`${inter.className} h-full flex flex-col antialiased text-slate-800`}>
-        {children}
+        <AuthGuard>{children}</AuthGuard>
       </body>
     </html>
   );

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { ClientShell } from "@/components/ClientShell";
 import { api } from "@/lib/api";
 import { PrivacyPolicyItem } from "@/types";
+import { IS_DEMO_MODE, isAuthenticated } from "@/lib/config";
 import { Sliders, Shield, Save, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 
 const ACTIONS: Array<"ALLOW" | "REMOVE" | "MASK" | "PSEUDONYMIZE" | "AGGREGATE"> = [
@@ -52,6 +53,13 @@ export default function PoliciesPage() {
   };
 
   const handleSavePolicy = async (policy: PrivacyPolicyItem) => {
+    if (IS_DEMO_MODE && !isAuthenticated()) {
+      setFeedback({
+        type: "error",
+        text: "Policy mutation is locked in Public Demo Mode. Authenticate with SOC Analyst credentials to alter minimization parameters.",
+      });
+      return;
+    }
     setSavingId(policy.policy_id);
     setFeedback(null);
     try {
@@ -104,6 +112,25 @@ export default function PoliciesPage() {
             <span>Refresh Policies</span>
           </button>
         </div>
+
+        {IS_DEMO_MODE && !isAuthenticated() && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900 font-mono">
+                PUBLIC DEMO MODE
+              </span>
+              <span>
+                Data Minimization Policies are displayed in Read-Only demonstration mode. Parameter updates and rule deletions require SOC Analyst credentials.
+              </span>
+            </div>
+            <a
+              href="/login"
+              className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 underline whitespace-nowrap ml-4"
+            >
+              Sign In &rarr;
+            </a>
+          </div>
+        )}
 
         {feedback && (
           <div

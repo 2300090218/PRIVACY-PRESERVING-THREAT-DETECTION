@@ -13,6 +13,8 @@ class PolicyAction(str, Enum):
     MASK = "MASK"
     PSEUDONYMIZE = "PSEUDONYMIZE"
     AGGREGATE = "AGGREGATE"
+    ENCRYPT = "ENCRYPT"
+    COARSEN = "COARSEN"
 
 class FieldPolicy(BaseModel):
     field_name: str
@@ -77,14 +79,10 @@ def create_default_policy_config(organization_id: str = "org_enterprise_a") -> P
         default_action=PolicyAction.REMOVE,
     )
     
-    # 1. Strictly Removed PII / Credentials
+    # 1. Strictly Prohibited Raw Identifiers & Plaintext Secrets
     config.set_policy("username", PolicyAction.REMOVE, description="Prohibit individual user names from leaving boundary")
     config.set_policy("user", PolicyAction.REMOVE, description="Prohibit user identity")
     config.set_policy("email", PolicyAction.REMOVE, description="Prohibit email addresses")
-    config.set_policy("source_ip", PolicyAction.REMOVE, description="Prohibit exact internal and client source IP addresses")
-    config.set_policy("ip_address", PolicyAction.REMOVE, description="Prohibit exact IP addresses")
-    config.set_policy("exact_location", PolicyAction.REMOVE, description="Prohibit exact physical office/branch geo-location")
-    config.set_policy("location", PolicyAction.REMOVE, description="Prohibit physical locations")
     config.set_policy("password", PolicyAction.REMOVE, description="Prohibit cleartext or hashed passwords")
     config.set_policy("secret", PolicyAction.REMOVE, description="Prohibit application secrets")
     config.set_policy("api_key", PolicyAction.REMOVE, description="Prohibit API keys and tokens")
@@ -92,8 +90,6 @@ def create_default_policy_config(organization_id: str = "org_enterprise_a") -> P
     config.set_policy("client_ip", PolicyAction.REMOVE, description="Prohibit client IP addresses")
     config.set_policy("hostname", PolicyAction.REMOVE, description="Prohibit workstation and server hostnames")
     config.set_policy("mac_address", PolicyAction.REMOVE, description="Prohibit hardware MAC addresses")
-    config.set_policy("latitude", PolicyAction.REMOVE, description="Prohibit exact latitude coordinates")
-    config.set_policy("longitude", PolicyAction.REMOVE, description="Prohibit exact longitude coordinates")
     config.set_policy("user_id", PolicyAction.REMOVE, description="Prohibit direct user identifier strings")
     config.set_policy("jwt", PolicyAction.REMOVE, description="Prohibit JWT tokens")
     config.set_policy("authorization", PolicyAction.REMOVE, description="Prohibit authorization headers")
@@ -101,18 +97,32 @@ def create_default_policy_config(organization_id: str = "org_enterprise_a") -> P
     config.set_policy("raw_logs", PolicyAction.REMOVE, description="Prohibit raw log lists")
     config.set_policy("raw_network_logs", PolicyAction.REMOVE, description="Prohibit complete raw unminimized network dump")
 
-    # 2. Pseudonymized Identifiers
+    # 2. Field-Level IP & Geolocation Protection (Part 30 Standards)
+    # Default IP Policy: Keyed HMAC-SHA-256 deterministic pseudonymization for correlation
+    config.set_policy("source_ip", PolicyAction.PSEUDONYMIZE, {"algorithm": "HMAC-SHA-256", "format": "hmac-sha256:v1"}, description="HMAC-SHA-256 keyed pseudonymization for source IP")
+    config.set_policy("ip_address", PolicyAction.PSEUDONYMIZE, {"algorithm": "HMAC-SHA-256", "format": "hmac-sha256:v1"}, description="HMAC-SHA-256 keyed pseudonymization for IP address")
+
+    # Default GPS Geolocation Policy: Coarsening / generalization to regional zone
+    config.set_policy("latitude", PolicyAction.COARSEN, {"target_field": "location_zone"}, description="Coarsen precise latitude to regional zone")
+    config.set_policy("longitude", PolicyAction.COARSEN, {"target_field": "location_zone"}, description="Coarsen precise longitude to regional zone")
+    config.set_policy("exact_location", PolicyAction.REMOVE, description="Prohibit exact physical office/branch geo-location")
+    config.set_policy("location", PolicyAction.REMOVE, description="Prohibit physical locations")
+    
+    # Sensitive location requiring authorized recovery: AES-256-GCM encryption
+    config.set_policy("sensitive_location", PolicyAction.ENCRYPT, {"algorithm": "AES-256-GCM", "key_id": "privacy-key-v1"}, description="AES-256-GCM authenticated encryption for sensitive location")
+
+    # 3. Pseudonymized Identifiers
     config.set_policy("device_id", PolicyAction.PSEUDONYMIZE, {"prefix": "DEV", "salt_override": None}, description="Pseudonymize device IDs using salted HMAC-SHA256")
     config.set_policy("host_id", PolicyAction.PSEUDONYMIZE, {"prefix": "HOST"}, description="Pseudonymize local workstation host IDs")
 
-    # 3. Masked Attributes
+    # 4. Masked Attributes
     config.set_policy("destination_subnet", PolicyAction.MASK, {"mask_char": "*", "keep_prefix_octets": 2}, description="Mask destination subnets")
 
-    # 4. Aggregated Metrics
+    # 5. Aggregated Metrics
     config.set_policy("bytes_transferred", PolicyAction.AGGREGATE, {"buckets": [1000, 10000, 100000, 1000000]}, description="Bucketize raw byte volume into bandwidth tiers")
     config.set_policy("duration_seconds", PolicyAction.AGGREGATE, {"buckets": [1, 5, 30, 120, 600]}, description="Bucketize session duration")
 
-    # 5. Allowlisted Non-Sensitive Threat Indicators
+    # 6. Allowlisted Non-Sensitive Threat Indicators & Protected Representations
     config.set_policy("event_id", PolicyAction.ALLOW, description="Allow idempotency event identifier")
     config.set_policy("event_type", PolicyAction.ALLOW, description="Allow threat event classification name")
     config.set_policy("timestamp", PolicyAction.ALLOW, description="Allow event timestamp")
@@ -124,6 +134,9 @@ def create_default_policy_config(organization_id: str = "org_enterprise_a") -> P
     config.set_policy("destination_port", PolicyAction.ALLOW, description="Allow targeted service port number")
     config.set_policy("telemetry_source", PolicyAction.ALLOW, description="Allow telemetry classification (REAL, TEST, DEMO)")
     config.set_policy("is_test", PolicyAction.ALLOW, description="Allow test mode flag")
+    config.set_policy("location_zone", PolicyAction.ALLOW, description="Allow coarsened regional zone identifier (e.g. AP_REGION_01)")
+    config.set_policy("latitude_encrypted", PolicyAction.ALLOW, description="Allow AES-256-GCM encrypted latitude")
+    config.set_policy("longitude_encrypted", PolicyAction.ALLOW, description="Allow AES-256-GCM encrypted longitude")
 
     return config
 

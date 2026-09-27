@@ -43,8 +43,10 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # Privacy Engine Salt (Used for HMAC-SHA256 salted pseudonymization)
+    # Privacy Engine Salt & Encryption Keys (Part 30 - AES-256-GCM & HMAC-SHA-256)
     PRIVACY_SALT: str = "privacy-salt-isolated-dev-token-hmac-salt"
+    PRIVACY_ENCRYPTION_KEY: str = "threat-detection-aes256gcm-dev-key-32chars!"
+    PRIVACY_KEY_ID: str = "privacy-key-v1"
 
     # CORS & WebSockets
     CORS_ORIGINS: Union[List[str], str] = [

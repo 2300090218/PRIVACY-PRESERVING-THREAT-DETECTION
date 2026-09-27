@@ -5,6 +5,7 @@ import { FileText, Shield, Filter } from "lucide-react";
 import { ClientShell } from "@/components/ClientShell";
 import { api } from "@/lib/api";
 import { AuditLog } from "@/types";
+import { IS_DEMO_MODE, isAuthenticated } from "@/lib/config";
 
 export default function AuditPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -22,6 +23,25 @@ export default function AuditPage() {
             Immutable, append-only operational log recording all security, privacy, and training transactions
           </p>
         </div>
+
+        {IS_DEMO_MODE && !isAuthenticated() && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs px-4 py-3 rounded-xl flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900 font-mono">
+                PUBLIC DEMO MODE
+              </span>
+              <span>
+                Displaying sanitized public demonstration audit records. Enterprise employee audit trails, internal resource identifiers, and private forensic history require SOC Analyst credentials.
+              </span>
+            </div>
+            <a
+              href="/login"
+              className="text-xs font-semibold text-indigo-700 hover:text-indigo-900 underline whitespace-nowrap ml-4"
+            >
+              Sign In &rarr;
+            </a>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-left text-xs">
