@@ -14,7 +14,8 @@ from datetime import datetime, timezone
 from agent.config import AgentConfig, agent_config
 from agent.collector import TelemetryCollector, TelemetrySource
 from agent.queue import LocalEventQueue, DeliveryStatus, QueueItem
-from privacy_gateway.gateway import PrivacyGateway, PrivacyViolationError
+from privacy_gateway.gateway import PrivacyGateway, PrivacyViolationError, PreSendPipeline, PreSendResult
+from privacy_gateway.leakage_prevention import SafetyVerdict
 from privacy_gateway.metrics import privacy_metrics
 
 logger = logging.getLogger("agent.client")
@@ -46,15 +47,23 @@ class LocalAgentClient:
         """
         self.events_collected += 1
 
-        # 1. Privacy Gateway Transformation (Data Minimization)
-        try:
-            protected_event = self.gateway.transform_event(raw_event)
-        except PrivacyViolationError as pve:
-            self.events_failed += 1
-            return False, {"error": "PRIVACY_VIOLATION", "detail": str(pve)}
+        # 1. Edge Pre-Send Security & Privacy Pipeline
+        # (Threat Inspection -> Privacy Transformation -> Optimization -> Final Validation -> SAFE/BLOCKED)
+        pipeline_res = self.gateway.process_presend_pipeline(raw_event)
 
-        # 2. Resilient Local Queueing
-        queue_item = self.queue.enqueue(protected_event)
+        if not pipeline_res.is_safe_to_send or pipeline_res.verdict != SafetyVerdict.SAFE:
+            self.events_failed += 1
+            logger.warning("Event transmission BLOCKED by Edge Pre-Send Pipeline: %s", pipeline_res.violations)
+            return False, {
+                "error": "PRE_SEND_PIPELINE_BLOCKED",
+                "verdict": pipeline_res.verdict.value,
+                "detail": "; ".join(pipeline_res.violations),
+                "threat_inspection": pipeline_res.threat_inspection.to_dict(),
+                "decision_log": pipeline_res.decision_log,
+            }
+
+        # 2. Resilient Local Queueing (ONLY SAFE ARTIFACT IS ENQUEUED)
+        queue_item = self.queue.enqueue(pipeline_res.safe_artifact)
 
         # 3. Authenticated Transmission to Central API
         success, res = self._dispatch_queue_item(queue_item)

@@ -88,7 +88,17 @@ def create_default_policy_config(organization_id: str = "org_enterprise_a") -> P
     config.set_policy("password", PolicyAction.REMOVE, description="Prohibit cleartext or hashed passwords")
     config.set_policy("secret", PolicyAction.REMOVE, description="Prohibit application secrets")
     config.set_policy("api_key", PolicyAction.REMOVE, description="Prohibit API keys and tokens")
-    config.set_policy("token", PolicyAction.REMOVE, description="Prohibit bearer authorization tokens")
+    config.set_policy("destination_ip", PolicyAction.REMOVE, description="Prohibit destination IP addresses")
+    config.set_policy("client_ip", PolicyAction.REMOVE, description="Prohibit client IP addresses")
+    config.set_policy("hostname", PolicyAction.REMOVE, description="Prohibit workstation and server hostnames")
+    config.set_policy("mac_address", PolicyAction.REMOVE, description="Prohibit hardware MAC addresses")
+    config.set_policy("latitude", PolicyAction.REMOVE, description="Prohibit exact latitude coordinates")
+    config.set_policy("longitude", PolicyAction.REMOVE, description="Prohibit exact longitude coordinates")
+    config.set_policy("user_id", PolicyAction.REMOVE, description="Prohibit direct user identifier strings")
+    config.set_policy("jwt", PolicyAction.REMOVE, description="Prohibit JWT tokens")
+    config.set_policy("authorization", PolicyAction.REMOVE, description="Prohibit authorization headers")
+    config.set_policy("raw_log", PolicyAction.REMOVE, description="Prohibit raw log strings")
+    config.set_policy("raw_logs", PolicyAction.REMOVE, description="Prohibit raw log lists")
     config.set_policy("raw_network_logs", PolicyAction.REMOVE, description="Prohibit complete raw unminimized network dump")
 
     # 2. Pseudonymized Identifiers
