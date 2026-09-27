@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/test", tags=["Test Mode"])
 
 @router.post("/run")
 async def execute_security_test(
-    scenario_idx: Optional[int] = Query(None, ge=0, le=4),
+    scenario_idx: Optional[int] = Query(None, ge=0, le=5),
     db: AsyncSession = Depends(get_db)
 ):
     """
