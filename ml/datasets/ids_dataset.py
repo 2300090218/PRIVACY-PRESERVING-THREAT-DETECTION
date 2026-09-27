@@ -7,11 +7,15 @@ Provides:
 - Non-IID / IID federated client partitioning
 - Separate held-out global evaluation dataset
 """
+from __future__ import annotations
 
 import os
 import json
 import numpy as np
-import pandas as pd
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
 from typing import Dict, Tuple, List
 
 FEATURE_NAMES = [
