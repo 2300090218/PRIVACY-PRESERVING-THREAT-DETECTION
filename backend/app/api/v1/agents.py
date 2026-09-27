@@ -21,6 +21,7 @@ router = APIRouter(prefix="/agents", tags=["v1 - Agents"])
 def hash_api_key(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
+@router.post("", response_model=AgentRegisterResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/register", response_model=AgentRegisterResponse, status_code=status.HTTP_201_CREATED)
 async def register_agent(
     req: AgentRegisterRequest,

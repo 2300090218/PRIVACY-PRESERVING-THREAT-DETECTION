@@ -18,6 +18,7 @@ from privacy_gateway.policy_engine import create_default_policy_config
 
 router = APIRouter(prefix="/organizations", tags=["v1 - Organizations"])
 
+@router.post("", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/register", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def register_organization(
     req: OrganizationCreate,

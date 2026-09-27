@@ -14,6 +14,7 @@ from backend.app.services.client_service import client_service
 
 router = APIRouter(prefix="/api/clients", tags=["Clients"])
 
+@router.post("", response_model=ClientResponse)
 @router.post("/register", response_model=ClientResponse)
 async def register_client(req: ClientRegisterRequest, db: AsyncSession = Depends(get_db)):
     return await client_service.register_client(

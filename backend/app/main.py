@@ -37,6 +37,8 @@ from backend.app.api.metrics import router as metrics_router
 from backend.app.api.health import router as health_router
 from backend.app.api.test_routes import router as test_router
 from backend.app.api.v1 import api_v1_router
+from backend.app.api.v1.organizations import router as v1_org_router
+from backend.app.api.v1.agents import router as v1_agents_router
 
 async def initialize_platform():
     """Initializes Database schema and default seed data if not present."""
@@ -246,6 +248,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
 # Include Version 1 Standard Central API Routers (/api/v1/...)
 app.include_router(api_v1_router)
+
+# Mount Organizations and Agents under /api as well for compatibility
+app.include_router(v1_org_router, prefix="/api")
+app.include_router(v1_agents_router, prefix="/api")
 
 # Include Legacy Routers for Backward Compatibility
 app.include_router(auth_router)
