@@ -7,10 +7,20 @@ Raw training data NEVER leaves the local client environment.
 import os
 import hashlib
 import numpy as np
-import pandas as pd
 from typing import Dict, Any, Tuple
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, log_loss
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+try:
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score, log_loss
+except ImportError:
+    RandomForestClassifier = None
+    accuracy_score = None
+    log_loss = None
 
 from ml.datasets.ids_dataset import FEATURE_NAMES, ATTACK_CLASSES
 from backend.app.config import settings
@@ -24,11 +34,11 @@ class FederatedClient:
 
     def _load_local_data(self):
         """Loads client private dataset partition."""
-        if os.path.exists(self.partition_path):
+        if pd is not None and os.path.exists(self.partition_path):
             self.local_df = pd.read_csv(self.partition_path)
             print(f"[Client {self.client_id}] Loaded private dataset: {len(self.local_df)} samples (strictly local)")
         else:
-            print(f"[Client {self.client_id}] Partition file not found at {self.partition_path}")
+            self.local_df = None
 
     def train_local(
         self,

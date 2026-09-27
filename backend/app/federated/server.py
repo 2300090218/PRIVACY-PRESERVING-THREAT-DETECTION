@@ -11,9 +11,19 @@ import copy
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 import numpy as np
-import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, log_loss, confusion_matrix
+
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+try:
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, log_loss, confusion_matrix
+except ImportError:
+    RandomForestClassifier = None
+    accuracy_score = precision_score = recall_score = f1_score = log_loss = confusion_matrix = None
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -43,9 +53,11 @@ class FederatedServer:
 
     def _load_eval_data(self):
         eval_path = os.path.join(self.data_dir, "ids_eval_heldout.csv")
-        if os.path.exists(eval_path):
+        if pd is not None and os.path.exists(eval_path):
             self.eval_df = pd.read_csv(eval_path)
             print(f"[FL Server] Loaded held-out evaluation dataset: {len(self.eval_df)} samples")
+        else:
+            self.eval_df = None
 
     async def execute_federated_round(self, db: AsyncSession, actor: str = "ADMIN") -> Dict[str, Any]:
         """
