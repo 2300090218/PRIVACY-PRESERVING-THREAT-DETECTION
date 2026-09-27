@@ -44,13 +44,15 @@ if os.environ.get("VERCEL"):
 from backend.app.main import app, initialize_platform
 
 # Cold-start initialization guard for Vercel serverless functions
-_init_lock = asyncio.Lock()
+_init_lock = None
 _platform_initialized = False
 
 async def _ensure_serverless_initialized():
     """Ensures database tables and baseline seeds are created on cold start."""
-    global _platform_initialized
+    global _init_lock, _platform_initialized
     if not _platform_initialized:
+        if _init_lock is None:
+            _init_lock = asyncio.Lock()
         async with _init_lock:
             if not _platform_initialized:
                 try:
