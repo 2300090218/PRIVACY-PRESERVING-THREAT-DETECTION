@@ -62,8 +62,66 @@ class User(Base):
     email = Column(String(128), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(32), default="VIEWER", nullable=False) # ADMIN, SECURITY_ANALYST, AGENT_USER, VIEWER
+    display_name = Column(String(128), nullable=True)
     is_active = Column(Boolean, default=True)
+    email_verified = Column(Boolean, default=True)
+    two_factor_enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    last_login_at = Column(DateTime, nullable=True)
+
+class UserSession(Base):
+    __tablename__ = "user_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_token_hash = Column(String(128), unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, index=True, nullable=False)
+    last_active_at = Column(DateTime, default=utcnow)
+    is_revoked = Column(Boolean, default=False, index=True)
+    ip_address = Column(String(64), nullable=True)
+    user_agent = Column(String(255), nullable=True)
+
+    user = relationship("User", backref="sessions")
+
+class EmailVerificationCode(Base):
+    __tablename__ = "email_verification_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    otp_hash = Column(String(128), nullable=False)
+    session_nonce = Column(String(64), unique=True, index=True, nullable=False)
+    purpose = Column(String(32), default="LOGIN_2FA", index=True) # LOGIN_2FA, EMAIL_VERIFY, PASSWORD_RESET
+    attempt_count = Column(Integer, default=0)
+    max_attempts = Column(Integer, default=5)
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, index=True, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", backref="verification_codes")
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    token_hash = Column(String(128), unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=utcnow)
+    expires_at = Column(DateTime, index=True, nullable=False)
+    consumed_at = Column(DateTime, nullable=True)
+
+    user = relationship("User", backref="password_resets")
+
+class LoginAttempt(Base):
+    __tablename__ = "login_attempts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    identifier = Column(String(128), index=True, nullable=False) # email or username
+    ip_address = Column(String(64), nullable=True)
+    attempt_type = Column(String(32), default="PASSWORD", index=True) # PASSWORD, OTP
+    is_success = Column(Boolean, default=False)
+    timestamp = Column(DateTime, default=utcnow, index=True)
 
 class Agent(Base):
     __tablename__ = "agents"

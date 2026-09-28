@@ -42,16 +42,30 @@ def run_verification():
     # 2. Authentication Login
     token = None
     try:
+        admin_email = os.environ.get("INITIAL_ADMIN_EMAIL", "security-admin@threat-detection.local")
+        admin_pwd = os.environ.get("INITIAL_ADMIN_PASSWORD", "AdminSecure2026!#")
         login_res = client.post(
             "/api/auth/login",
-            json={"username": "admin", "password": "AdminPass123!"}
+            json={"email": admin_email, "password": admin_pwd}
         )
         assert login_res.status_code == 200, f"Login failed: {login_res.text}"
-        token = login_res.json().get("access_token")
-        assert token, "Token not found in login response"
-        log_test("Admin Authentication (/api/auth/login)", "PASS", "JWT Access Token obtained")
+        data = login_res.json()
+        if data.get("access_token"):
+            token = data["access_token"]
+        elif data.get("session_nonce"):
+            from backend.app.services.email_service import email_service
+            otp = email_service.get_last_dispatched_otp(data["session_nonce"])
+            verify_res = client.post(
+                "/api/auth/verify-otp",
+                json={"session_nonce": data["session_nonce"], "otp": otp}
+            )
+            assert verify_res.status_code == 200, f"OTP verification failed: {verify_res.text}"
+            token = verify_res.json().get("access_token")
+
+        assert token, "Token not found in auth response"
+        log_test("Admin Authentication & 2FA (/api/auth/login & /verify-otp)", "PASS", "JWT Access Token obtained")
     except Exception as e:
-        log_test("Admin Authentication (/api/auth/login)", "FAIL", str(e))
+        log_test("Admin Authentication & 2FA (/api/auth/login & /verify-otp)", "FAIL", str(e))
         return False
 
     auth_headers = {"Authorization": f"Bearer {token}"}

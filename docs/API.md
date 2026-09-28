@@ -17,8 +17,26 @@ Analysts and administrators authenticate using standard OAuth2 Bearer Tokens.
 - **Request Body**:
 ```json
 {
-  "username": "admin",
-  "password": "AdminPass123!"
+  "email": "user@example.com",
+  "password": "your_secure_password"
+}
+```
+- **Response** (`200 OK`):
+```json
+{
+  "session_nonce": "nonce_7f2a1b9c...",
+  "requires_2fa": true,
+  "masked_email": "u***@example.com",
+  "expires_in_seconds": 300
+}
+```
+
+#### `POST /api/v1/auth/verify-otp`
+- **Request Body**:
+```json
+{
+  "session_nonce": "nonce_7f2a1b9c...",
+  "otp": "123456"
 }
 ```
 - **Response** (`200 OK`):
@@ -26,9 +44,12 @@ Analysts and administrators authenticate using standard OAuth2 Bearer Tokens.
 {
   "access_token": "eyJhbGciOiJIUzI1NiIsIn...",
   "token_type": "bearer",
-  "expires_in": 86400,
-  "role": "ADMIN",
-  "organization_id": "org_enterprise_a"
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "security-admin@threat-detection.local",
+    "role": "ADMIN"
+  }
 }
 ```
 

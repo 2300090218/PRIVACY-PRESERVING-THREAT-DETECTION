@@ -161,16 +161,16 @@ def create_credentials_doc():
         {
             "role": "Platform Administrator",
             "username": "admin",
-            "password": "AdminPass123!",
+            "password": "[Configured via INITIAL_ADMIN_PASSWORD / Secure Env]",
             "org": "org_enterprise_a",
-            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiIsIm9yZ2FuaXphdGlvbl9pZCI6Im9yZ19lbnRlcnByaXNlX2EiLCJleHAiOjE3OTAxNDU1NjJ9.ZJRJdlf6uiEqobQbKOe54r9Xz-g-cMNGaaYI1dEur_k"
+            "token": "[Generated dynamically via 2FA Verification]"
         },
         {
             "role": "Security Analyst",
             "username": "analyst",
-            "password": "AnalystPass123!",
+            "password": "[Configured via INITIAL_ANALYST_PASSWORD / Secure Env]",
             "org": "org_enterprise_a",
-            "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhbmFseXN0Iiwicm9sZSI6IlNFQ1VSSVRZX0FOQUxZU1QiLCJvcmdhbml6YXRpb25faWQiOiJvcmdfZW50ZXJwcmlzZV9hIiwiZXhwIjoxNzkwMTQ1NTYyfQ.ooK2xy6CvTtr05pYi24Y7pTHsCvMXwi8cLHqi_OtIZY"
+            "token": "[Generated dynamically via 2FA Verification]"
         }
     ]
 

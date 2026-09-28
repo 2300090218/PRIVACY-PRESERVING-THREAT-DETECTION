@@ -8,22 +8,59 @@ from pydantic import BaseModel, Field, EmailStr, ConfigDict
 
 # Auth Schemas
 class LoginRequest(BaseModel):
-    username: str
+    email: Optional[str] = None
+    username: Optional[str] = None
     password: str
+
+class VerifyOtpRequest(BaseModel):
+    session_nonce: str
+    code: Optional[str] = None
+    otp: Optional[str] = None
+
+class ResendOtpRequest(BaseModel):
+    session_nonce: str
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+class LoginResponse(BaseModel):
+    status: str
+    two_factor_required: bool = False
+    session_nonce: Optional[str] = None
+    email_masked: Optional[str] = None
+    expires_in_seconds: Optional[int] = None
+    access_token: Optional[str] = None
+    token_type: Optional[str] = "bearer"
+    role: Optional[str] = None
+    username: Optional[str] = None
+    email: Optional[str] = None
+    display_name: Optional[str] = None
+    organization_id: Optional[str] = None
+    message: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     role: str
     username: str
+    organization_id: Optional[str] = "org_enterprise_a"
 
 class UserResponse(BaseModel):
     id: int
     username: str
     email: str
+    display_name: Optional[str] = None
     role: str
+    organization_id: Optional[str] = None
     is_active: bool
+    email_verified: bool = True
+    two_factor_enabled: bool = True
     created_at: datetime
+    last_login_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 

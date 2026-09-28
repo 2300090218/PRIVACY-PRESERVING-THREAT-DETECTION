@@ -121,12 +121,26 @@ class LivePacketCollector:
         self.token = None
         self.http_client = httpx.Client(base_url=self.backend_url, timeout=15.0)
 
-    def authenticate(self, username: str = "admin", password: str = "AdminPass123!") -> bool:
+    def authenticate(self, email: Optional[str] = None, password: Optional[str] = None) -> bool:
         try:
-            res = self.http_client.post("/api/auth/login", json={"username": username, "password": password})
+            target_email = email or os.environ.get("INITIAL_ADMIN_EMAIL", "security-admin@threat-detection.local")
+            target_password = password or os.environ.get("INITIAL_ADMIN_PASSWORD", "")
+            res = self.http_client.post("/api/auth/login", json={"email": target_email, "password": target_password})
             if res.status_code == 200:
-                self.token = res.json().get("access_token")
-                return True
+                data = res.json()
+                if data.get("access_token"):
+                    self.token = data.get("access_token")
+                    return True
+                elif data.get("session_nonce"):
+                    from backend.app.services.email_service import email_service
+                    otp = email_service.get_last_dispatched_otp(data["session_nonce"])
+                    verify_res = self.http_client.post(
+                        "/api/auth/verify-otp",
+                        json={"session_nonce": data["session_nonce"], "otp": otp}
+                    )
+                    if verify_res.status_code == 200:
+                        self.token = verify_res.json().get("access_token")
+                        return True
             print(f"[ERROR] Auth failed: {res.text}")
             return False
         except Exception as e:

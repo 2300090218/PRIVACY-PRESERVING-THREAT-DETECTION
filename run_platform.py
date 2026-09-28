@@ -158,8 +158,7 @@ def main():
   * Web Dashboard:          http://localhost:3000
   * REST API & Endpoints:   http://127.0.0.1:8000
   * Interactive API Docs:   http://127.0.0.1:8000/docs
-  * WebSocket Stream:       ws://127.0.0.1:8000/ws
-  * Default Credentials:    admin / AdminPass123!
+  * Authentication:         Email Two-Step Verification (OTP)
 +---------------------------------------------------------------------------+
   Press Ctrl+C to gracefully stop all services.
 """)

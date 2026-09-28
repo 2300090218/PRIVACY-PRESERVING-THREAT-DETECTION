@@ -6,7 +6,7 @@ Loads settings from environment variables or .env file with validated defaults.
 import os
 import json
 import tempfile
-from typing import List, Union, Any
+from typing import List, Union, Any, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator, model_validator
 
@@ -42,6 +42,24 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "threat-detection-jwt-secret-dev-key-32chars"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+
+    # Email / SMTP Configuration (Two-Step Verification)
+    AUTH_SMTP_HOST: Optional[str] = None
+    AUTH_SMTP_PORT: int = 587
+    AUTH_SMTP_USER: Optional[str] = None
+    AUTH_SMTP_PASSWORD: Optional[str] = None
+    AUTH_EMAIL_FROM: str = "security-ops@threat-detection.local"
+    AUTH_SMTP_USE_TLS: bool = True
+
+    # 2FA / OTP & Session Configuration
+    AUTH_OTP_EXPIRE_MINUTES: int = 5
+    AUTH_OTP_MAX_ATTEMPTS: int = 5
+    AUTH_SESSION_EXPIRE_DAYS: int = 7
+    AUTH_RATE_LIMIT_FAILED_ATTEMPTS: int = 5
+    AUTH_RATE_LIMIT_WINDOW_MINUTES: int = 15
+    SESSION_SECRET: Optional[str] = None
+    INITIAL_ADMIN_EMAIL: str = "security-admin@threat-detection.local"
+    INITIAL_ADMIN_PASSWORD: Optional[str] = None
 
     # Privacy Engine Salt & Encryption Keys (Part 30 - AES-256-GCM & HMAC-SHA-256)
     PRIVACY_SALT: str = "privacy-salt-isolated-dev-token-hmac-salt"

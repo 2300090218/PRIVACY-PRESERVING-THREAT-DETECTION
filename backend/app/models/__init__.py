@@ -1,5 +1,9 @@
 from backend.app.models.all_models import (
     User,
+    UserSession,
+    EmailVerificationCode,
+    PasswordResetToken,
+    LoginAttempt,
     Client,
     SecurityEvent,
     Detection,
@@ -16,6 +20,10 @@ from backend.app.models.all_models import (
 
 __all__ = [
     "User",
+    "UserSession",
+    "EmailVerificationCode",
+    "PasswordResetToken",
+    "LoginAttempt",
     "Client",
     "SecurityEvent",
     "Detection",

@@ -28,12 +28,31 @@ X-Client-Key: <PROVISIONED_CLIENT_SECRET>
 ### 2.1 Authentication (`/api/auth`)
 
 #### `POST /api/auth/login`
-Authenticates a user and issues an access token.
+Validates credentials and dispatches a cryptographically secure one-time verification code (OTP) to registered email.
 - **Request Body**:
   ```json
   {
-    "username": "admin",
-    "password": "AdminPass123!"
+    "email": "user@example.com",
+    "password": "your_secure_password"
+  }
+  ```
+- **Response `200 OK`**:
+  ```json
+  {
+    "session_nonce": "nonce_7f2a1b9c...",
+    "requires_2fa": true,
+    "masked_email": "u***@example.com",
+    "expires_in_seconds": 300
+  }
+  ```
+
+#### `POST /api/auth/verify-otp`
+Verifies single-use OTP code and issues authenticated session cookie & JWT access token.
+- **Request Body**:
+  ```json
+  {
+    "session_nonce": "nonce_7f2a1b9c...",
+    "otp": "123456"
   }
   ```
 - **Response `200 OK`**:
@@ -44,8 +63,9 @@ Authenticates a user and issues an access token.
     "user": {
       "id": 1,
       "username": "admin",
-      "email": "admin@threatguard.internal",
-      "role": "ADMIN"
+      "email": "security-admin@threat-detection.local",
+      "role": "ADMIN",
+      "display_name": "Enterprise Security Administrator"
     }
   }
   ```

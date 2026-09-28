@@ -178,29 +178,53 @@ async def initialize_platform():
             session.add_all(demo_people)
 
         # 2. Users (Admin & Security Analyst)
-        admin_res = await session.execute(select(User).where(User.username == "admin"))
-        if not admin_res.scalars().first():
+        admin_res = await session.execute(
+            select(User).where((User.username == "admin") | (User.email == "security-admin@threat-detection.local"))
+        )
+        admin_user = admin_res.scalars().first()
+        if not admin_user:
             print("[Startup] Seeding initial administrator account...")
+            admin_pwd = os.environ.get("INITIAL_ADMIN_PASSWORD") or "AdminSecure2026!#"
             admin_user = User(
                 username="admin",
-                email="security-admin@threat-detection.local",
+                email=os.environ.get("INITIAL_ADMIN_EMAIL") or "security-admin@threat-detection.local",
                 organization_id="org_enterprise_a",
-                hashed_password=get_password_hash("AdminPass123!"),
-                role="ADMIN"
+                hashed_password=get_password_hash(admin_pwd),
+                role="ADMIN",
+                display_name="Enterprise Security Administrator",
+                email_verified=True,
+                two_factor_enabled=True
             )
             session.add(admin_user)
+        else:
+            if not admin_user.display_name:
+                admin_user.display_name = "Enterprise Security Administrator"
+            admin_user.two_factor_enabled = True
+            admin_user.email_verified = True
 
-        analyst_res = await session.execute(select(User).where(User.username == "analyst"))
-        if not analyst_res.scalars().first():
+        analyst_res = await session.execute(
+            select(User).where((User.username == "analyst") | (User.email == "security-analyst@threat-detection.local"))
+        )
+        analyst_user = analyst_res.scalars().first()
+        if not analyst_user:
             print("[Startup] Seeding initial security analyst account...")
+            analyst_pwd = os.environ.get("INITIAL_ANALYST_PASSWORD") or "AnalystSecure2026!#"
             analyst_user = User(
                 username="analyst",
                 email="security-analyst@threat-detection.local",
                 organization_id="org_enterprise_a",
-                hashed_password=get_password_hash("AnalystPass123!"),
-                role="SECURITY_ANALYST"
+                hashed_password=get_password_hash(analyst_pwd),
+                role="SECURITY_ANALYST",
+                display_name="SOC Lead Analyst",
+                email_verified=True,
+                two_factor_enabled=True
             )
             session.add(analyst_user)
+        else:
+            if not analyst_user.display_name:
+                analyst_user.display_name = "SOC Lead Analyst"
+            analyst_user.two_factor_enabled = True
+            analyst_user.email_verified = True
 
         # 3. Agents & API Credentials
         agent_res = await session.execute(select(Agent))
@@ -316,6 +340,27 @@ async def initialize_platform():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup & shutdown lifecycle hooks."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        try:
+            def _migrate_users_columns(sync_conn):
+                cursor = sync_conn.connection.cursor()
+                cursor.execute("PRAGMA table_info(users)")
+                cols = [row[1] for row in cursor.fetchall()]
+                if cols:
+                    if "display_name" not in cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)")
+                    if "email_verified" not in cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 1")
+                    if "two_factor_enabled" not in cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 1")
+                    if "updated_at" not in cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN updated_at DATETIME")
+                    if "last_login_at" not in cols:
+                        cursor.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
+            await conn.run_sync(_migrate_users_columns)
+        except Exception:
+            pass
     await initialize_platform()
     yield
     print("[Shutdown] Cleaning up platform resources...")
@@ -349,6 +394,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         content={
             "error": "HTTP_ERROR",
             "message": exc.detail,
+            "detail": exc.detail,
             "request_id": req_id
         }
     )

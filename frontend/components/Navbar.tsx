@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Shield,
   Play,
@@ -11,9 +13,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   Square,
-  Radio
+  Radio,
+  User,
+  LogOut,
+  LogIn
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, API_BASE } from "@/lib/api";
 import { WSStatus } from "@/types";
 import { IS_DEMO_MODE } from "@/lib/config";
 
@@ -25,12 +30,57 @@ interface NavbarProps {
 }
 
 export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarProps) {
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentRole, setCurrentRole] = useState<string | null>(null);
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [scanCount, setScanCount] = useState(0);
   const [isLoadingToggle, setIsLoadingToggle] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastScenario, setLastScenario] = useState<string | null>(null);
   const clientMonitorIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const syncAuth = () => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        if (token) {
+          setCurrentUser(localStorage.getItem("display_name") || localStorage.getItem("user") || "Operator");
+          setCurrentRole(localStorage.getItem("role") || "VIEWER");
+        } else {
+          setCurrentUser(null);
+          setCurrentRole(null);
+        }
+      }
+    };
+    syncAuth();
+    window.addEventListener("auth-change", syncAuth);
+    return () => window.removeEventListener("auth-change", syncAuth);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      }).catch(() => {});
+    } finally {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+        localStorage.removeItem("user");
+        localStorage.removeItem("email");
+        localStorage.removeItem("display_name");
+        window.dispatchEvent(new Event("auth-change"));
+      }
+      router.push("/login");
+    }
+  };
 
   const triggerSingleScan = async () => {
     try {
@@ -259,6 +309,35 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
               </>
             )}
           </button>
+
+          {/* Authenticated User & Session Status */}
+          {currentUser ? (
+            <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                <User className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="font-mono text-[11px] max-w-[120px] truncate">{currentUser}</span>
+                <span className="text-[9px] px-1 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold uppercase tracking-tight">
+                  {currentRole}
+                </span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 transition-colors cursor-pointer"
+                title="Sign Out of Operations Console"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Sign Out</span>
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition-colors"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>Sign In</span>
+            </Link>
+          )}
         </div>
       </header>
 

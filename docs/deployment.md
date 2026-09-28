@@ -179,8 +179,8 @@ Upon initial startup, `backend/app/main.py` checks for database schema readiness
    - `org_finance_b` (Financial Services Group B)
    - `org_cloud_c` (Cloud Infrastructure VPC C)
 2. Seed administrative and analyst accounts:
-   - `admin` (Role: `ADMIN`, Password: `AdminPass123!`)
-   - `analyst` (Role: `SECURITY_ANALYST`, Password: `AnalystPass123!`)
+   - `admin` (Role: `ADMIN`, Password configured via `INITIAL_ADMIN_PASSWORD` env var)
+   - `analyst` (Role: `SECURITY_ANALYST`, Password configured via `INITIAL_ANALYST_PASSWORD` env var)
 3. Pre-registered edge agents with dedicated HMAC API keys.
 4. Default enterprise privacy policies (`username` -> REMOVE, `source_ip` -> REMOVE, `exact_location` -> REMOVE, `device_id` -> PSEUDONYMIZE).
 

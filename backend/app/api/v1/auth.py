@@ -1,81 +1,77 @@
 """
 API v1 Authentication Router
+Provides enterprise email authentication, two-step verification, and profile endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 
 from backend.app.database import get_db
 from backend.app.models.all_models import User
-from backend.app.security.authentication import verify_password, create_access_token, get_current_user
-from backend.app.services.audit_service import log_audit
+from backend.app.schemas.all_schemas import (
+    LoginRequest, LoginResponse, VerifyOtpRequest, ResendOtpRequest,
+    ForgotPasswordRequest, ResetPasswordRequest, UserResponse
+)
+from backend.app.security.authentication import get_current_user
+from backend.app.api.auth import (
+    login as auth_login,
+    verify_otp as auth_verify_otp,
+    resend_otp as auth_resend_otp,
+    logout as auth_logout,
+    forgot_password as auth_forgot_password,
+    reset_password as auth_reset_password
+)
 
 router = APIRouter(prefix="/auth", tags=["v1 - Authentication"])
 
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    req: LoginRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_login(req=req, request=request, response=response, db=db)
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    role: str
-    username: str
-    organization_id: str
+@router.post("/verify-otp", response_model=LoginResponse)
+async def verify_otp(
+    req: VerifyOtpRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_verify_otp(req=req, request=request, response=response, db=db)
 
-@router.post("/login", response_model=TokenResponse)
-async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
-    stmt = select(User).where(User.username == req.username)
-    res = await db.execute(stmt)
-    user = res.scalars().first()
+@router.post("/resend-otp")
+async def resend_otp(
+    req: ResendOtpRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_resend_otp(req=req, request=request, db=db)
 
-    if not user or not verify_password(req.password, user.hashed_password):
-        await log_audit(
-            db,
-            actor=req.username,
-            action="LOGIN_FAILED",
-            resource="auth",
-            organization_id="system",
-            result="FAILURE"
-        )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+@router.post("/logout")
+async def logout(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_logout(request=request, response=response, db=db)
 
-    token = create_access_token(data={
-        "sub": user.username,
-        "role": user.role,
-        "organization_id": user.organization_id
-    })
-
-    await log_audit(
-        db,
-        actor=user.username,
-        action="LOGIN_SUCCESS",
-        resource="auth",
-        organization_id=user.organization_id,
-        result="SUCCESS"
-    )
-
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "role": user.role,
-        "username": user.username,
-        "organization_id": user.organization_id
-    }
-
-@router.get("/me")
+@router.get("/me", response_model=UserResponse)
 async def get_me(user: User = Depends(get_current_user)):
-    return {
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "role": user.role,
-        "organization_id": user.organization_id,
-        "created_at": user.created_at
-    }
+    return user
+
+@router.post("/forgot-password")
+async def forgot_password(
+    req: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_forgot_password(req=req, db=db)
+
+@router.post("/reset-password")
+async def reset_password(
+    req: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    return await auth_reset_password(req=req, db=db)

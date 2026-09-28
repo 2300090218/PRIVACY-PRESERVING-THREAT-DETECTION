@@ -169,12 +169,25 @@ async def run_acceptance_scenario():
     print_banner(10, "Transmit Protected Payload over Authenticated API to Central Server")
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://testserver") as client:
         # Obtain auth token for agent / analyst
+        admin_email = os.environ.get("INITIAL_ADMIN_EMAIL", "security-admin@threat-detection.local")
+        admin_pwd = os.environ.get("INITIAL_ADMIN_PASSWORD", "AdminSecure2026!#")
         login_res = await client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "AdminPass123!"
+            "email": admin_email,
+            "password": admin_pwd
         })
         assert login_res.status_code == 200, f"Login failed: {login_res.text}"
-        auth_token = login_res.json()["access_token"]
+        data = login_res.json()
+        if data.get("access_token"):
+            auth_token = data["access_token"]
+        else:
+            from backend.app.services.email_service import email_service
+            otp = email_service.get_last_dispatched_otp(data["session_nonce"])
+            verify_res = await client.post("/api/v1/auth/verify-otp", json={
+                "session_nonce": data["session_nonce"],
+                "otp": otp
+            })
+            assert verify_res.status_code == 200
+            auth_token = verify_res.json()["access_token"]
         headers = {
             "Authorization": f"Bearer {auth_token}",
             "X-Organization-ID": "org_enterprise_a",

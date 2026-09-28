@@ -46,9 +46,21 @@ async def test_v1_auth_login(async_client: AsyncClient):
     })
     assert res.status_code == 200
     data = res.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
-    assert data["role"] == "ADMIN"
+    assert data["status"] == "OTP_SENT"
+    assert data["two_factor_required"] is True
+    session_nonce = data["session_nonce"]
+
+    from backend.app.services.email_service import email_service
+    otp = email_service.get_last_dispatched_otp(session_nonce)
+    verify_res = await async_client.post("/api/v1/auth/verify-otp", json={
+        "session_nonce": session_nonce,
+        "otp": otp
+    })
+    assert verify_res.status_code == 200
+    verify_data = verify_res.json()
+    assert "access_token" in verify_data
+    assert verify_data["token_type"] == "bearer"
+    assert verify_data["role"] == "ADMIN"
 
 @pytest.mark.asyncio
 async def test_v1_system_health(async_client: AsyncClient):
@@ -189,7 +201,14 @@ async def test_v1_audit_logs(async_client: AsyncClient):
         "username": "admin",
         "password": "AdminPass123!"
     })
-    token = login_res.json()["access_token"]
+    login_data = login_res.json()
+    from backend.app.services.email_service import email_service
+    otp = email_service.get_last_dispatched_otp(login_data["session_nonce"])
+    verify_res = await async_client.post("/api/v1/auth/verify-otp", json={
+        "session_nonce": login_data["session_nonce"],
+        "otp": otp
+    })
+    token = verify_res.json()["access_token"]
 
     # Query audit logs
     res = await async_client.get(
