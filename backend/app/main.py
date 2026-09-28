@@ -14,7 +14,7 @@ from sqlalchemy import delete
 from sqlalchemy.future import select
 
 from backend.app.config import settings
-from backend.app.database import init_db, AsyncSessionLocal
+from backend.app.database import init_db, AsyncSessionLocal, engine, Base
 from backend.app.models.all_models import (
     User, Client, ModelVersion, Organization, Agent, ApiCredential, PrivacyPolicyRecord, SyntheticRecord
 )
@@ -340,28 +340,36 @@ async def initialize_platform():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application startup & shutdown lifecycle hooks."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        try:
-            def _migrate_users_columns(sync_conn):
-                cursor = sync_conn.connection.cursor()
-                cursor.execute("PRAGMA table_info(users)")
-                cols = [row[1] for row in cursor.fetchall()]
-                if cols:
-                    if "display_name" not in cols:
-                        cursor.execute("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)")
-                    if "email_verified" not in cols:
-                        cursor.execute("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 1")
-                    if "two_factor_enabled" not in cols:
-                        cursor.execute("ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 1")
-                    if "updated_at" not in cols:
-                        cursor.execute("ALTER TABLE users ADD COLUMN updated_at DATETIME")
-                    if "last_login_at" not in cols:
-                        cursor.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
-            await conn.run_sync(_migrate_users_columns)
-        except Exception:
-            pass
-    await initialize_platform()
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+            try:
+                def _migrate_users_columns(sync_conn):
+                    cursor = sync_conn.connection.cursor()
+                    cursor.execute("PRAGMA table_info(users)")
+                    cols = [row[1] for row in cursor.fetchall()]
+                    if cols:
+                        if "display_name" not in cols:
+                            cursor.execute("ALTER TABLE users ADD COLUMN display_name VARCHAR(128)")
+                        if "email_verified" not in cols:
+                            cursor.execute("ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 1")
+                        if "two_factor_enabled" not in cols:
+                            cursor.execute("ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 1")
+                        if "updated_at" not in cols:
+                            cursor.execute("ALTER TABLE users ADD COLUMN updated_at DATETIME")
+                        if "last_login_at" not in cols:
+                            cursor.execute("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
+                await conn.run_sync(_migrate_users_columns)
+            except Exception:
+                pass
+    except Exception as exc:
+        print(f"[Startup] Database schema init note: {exc}")
+
+    try:
+        await initialize_platform()
+    except Exception as exc:
+        print(f"[Startup] Platform initialization note: {exc}")
+
     yield
     print("[Shutdown] Cleaning up platform resources...")
 
