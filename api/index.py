@@ -25,12 +25,13 @@ ML_DIR = os.path.join(ROOT_DIR, "ml")
 if ML_DIR not in sys.path:
     sys.path.insert(0, ML_DIR)
 
-# Handle Vercel serverless read-only filesystem by redirecting SQLite to writable /tmp
+# Handle Vercel serverless read-only filesystem by redirecting SQLite, models, and datasets to writable /tmp
 if os.environ.get("VERCEL"):
+    import shutil
+    tmp_dir = "/tmp" if os.path.exists("/tmp") else tempfile.gettempdir()
+
     current_db_url = os.environ.get("DATABASE_URL", "")
     if not current_db_url or "sqlite" in current_db_url:
-        import shutil
-        tmp_dir = "/tmp" if os.path.exists("/tmp") else tempfile.gettempdir()
         tmp_db_path = os.path.join(tmp_dir, "threat_detection.db").replace("\\", "/")
         root_db_path = os.path.join(ROOT_DIR, "threat_detection.db")
         if os.path.exists(root_db_path) and not os.path.exists(tmp_db_path):
@@ -39,6 +40,26 @@ if os.environ.get("VERCEL"):
             except Exception:
                 pass
         os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{tmp_db_path}"
+
+    tmp_models = os.path.join(tmp_dir, "models").replace("\\", "/")
+    root_models = os.path.join(ROOT_DIR, "ml", "models")
+    if os.path.exists(root_models) and not os.path.exists(tmp_models):
+        try:
+            shutil.copytree(root_models, tmp_models, dirs_exist_ok=True)
+        except Exception:
+            pass
+    if os.path.exists(tmp_models):
+        os.environ["MODEL_DIR"] = tmp_models
+
+    tmp_datasets = os.path.join(tmp_dir, "datasets").replace("\\", "/")
+    root_datasets = os.path.join(ROOT_DIR, "ml", "datasets")
+    if os.path.exists(root_datasets) and not os.path.exists(tmp_datasets):
+        try:
+            shutil.copytree(root_datasets, tmp_datasets, dirs_exist_ok=True)
+        except Exception:
+            pass
+    if os.path.exists(tmp_datasets):
+        os.environ["DATASET_DIR"] = tmp_datasets
 
 # Import main FastAPI application instance from backend
 from backend.app.main import app, initialize_platform

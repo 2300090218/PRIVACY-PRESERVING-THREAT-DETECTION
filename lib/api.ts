@@ -35,7 +35,17 @@ async function fetchJson<T>(url: string, options: RequestInit = {}): Promise<T> 
     let errorMsg = `HTTP Error ${res.status}`;
     try {
       const errBody = await res.json();
-      errorMsg = errBody.message || errBody.detail || errorMsg;
+      if (errBody) {
+        if (typeof errBody.message === "string") {
+          errorMsg = errBody.message;
+        } else if (typeof errBody.detail === "string") {
+          errorMsg = errBody.detail;
+        } else if (typeof errBody.detail === "object" && errBody.detail?.message) {
+          errorMsg = String(errBody.detail.message);
+        } else if (typeof errBody.message === "object" && errBody.message?.message) {
+          errorMsg = String(errBody.message.message);
+        }
+      }
     } catch (_) {}
     throw new Error(errorMsg);
   }

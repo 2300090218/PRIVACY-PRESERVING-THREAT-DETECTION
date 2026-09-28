@@ -150,13 +150,23 @@ def federated_averaging(
     if not client_updates:
         raise ValueError("Cannot perform FedAvg with empty client updates list.")
 
-    total_samples = sum(sample_count for _, sample_count in client_updates)
+    valid_updates = []
+    for item in client_updates:
+        if isinstance(item, (tuple, list)) and len(item) == 2:
+            w, s = item
+            if w is not None and isinstance(w, np.ndarray) and s is not None and s > 0:
+                valid_updates.append((w, int(s)))
+
+    if not valid_updates:
+        raise ValueError("Cannot perform FedAvg: no valid client updates available.")
+
+    total_samples = sum(sample_count for _, sample_count in valid_updates)
     if total_samples == 0:
-        total_samples = len(client_updates)
+        total_samples = len(valid_updates)
 
     aggregated_weights = None
 
-    for weights, sample_count in client_updates:
+    for weights, sample_count in valid_updates:
         clipped_w = validate_and_clip_update(weights, clip_threshold=clip_threshold)
         weight_factor = sample_count / total_samples
 
@@ -201,5 +211,6 @@ def federated_averaging_dp(
         delta=delta
     )
     dp_metrics["clip_threshold"] = clip_threshold
-    dp_metrics["total_samples"] = sum(s for _, s in client_updates)
+    valid_samples = [s for item in (client_updates or []) if isinstance(item, (tuple, list)) and len(item) == 2 and item[1] is not None for s in [item[1]] if s > 0]
+    dp_metrics["total_samples"] = sum(valid_samples) if valid_samples else 0
     return aggregated_weights, dp_metrics

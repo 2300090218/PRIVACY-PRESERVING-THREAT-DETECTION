@@ -84,8 +84,8 @@ class Settings(BaseSettings):
         ]
 
     # ML & Federated Learning
-    MODEL_DIR: str = os.path.join(ROOT_DIR, "ml", "models")
-    DATASET_DIR: str = os.path.join(ROOT_DIR, "ml", "datasets")
+    MODEL_DIR: str = os.environ.get("MODEL_DIR") or os.path.join(ROOT_DIR, "ml", "models")
+    DATASET_DIR: str = os.environ.get("DATASET_DIR") or os.path.join(ROOT_DIR, "ml", "datasets")
     FL_SERVER_HOST: str = "0.0.0.0"
     FL_SERVER_PORT: int = 8080
     FL_MIN_CLIENTS: int = 3

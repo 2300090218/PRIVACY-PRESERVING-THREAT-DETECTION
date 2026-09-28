@@ -42,15 +42,27 @@ class FedAvgStrategy:
         Validates client participation, clips update vectors for privacy preservation,
         and computes sample-weighted average parameters.
         """
-        if len(client_updates) < self.min_clients:
+        if client_updates is None:
+            raise ValueError("No client updates provided for aggregation.")
+
+        valid_updates = []
+        for item in client_updates:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                continue
+            w, s = item
+            if w is not None and isinstance(w, np.ndarray) and s is not None and s > 0:
+                if self.validate_client_update(w):
+                    valid_updates.append((w, int(s)))
+
+        if len(valid_updates) < self.min_clients:
             raise ValueError(
-                f"Insufficient participating clients: received {len(client_updates)}, "
+                f"Insufficient participating clients: received {len(valid_updates)}, "
                 f"required minimum is {self.min_clients}."
             )
 
         threshold = self.clip_threshold if self.enable_differential_privacy else 1e6
         noise = self.noise_multiplier if (self.enable_differential_privacy and inject_noise) else 0.0
-        return federated_averaging(client_updates, clip_threshold=threshold, noise_multiplier=noise)
+        return federated_averaging(valid_updates, clip_threshold=threshold, noise_multiplier=noise)
 
     def aggregate_fit_with_dp(
         self,
@@ -62,14 +74,26 @@ class FedAvgStrategy:
         Computes FedAvg with Differential Privacy noise and returns parameter vector
         together with formal analytical privacy certification metrics.
         """
-        if len(client_updates) < self.min_clients:
+        if client_updates is None:
+            raise ValueError("No client updates provided for aggregation.")
+
+        valid_updates = []
+        for item in client_updates:
+            if not isinstance(item, (tuple, list)) or len(item) != 2:
+                continue
+            w, s = item
+            if w is not None and isinstance(w, np.ndarray) and s is not None and s > 0:
+                if self.validate_client_update(w):
+                    valid_updates.append((w, int(s)))
+
+        if len(valid_updates) < self.min_clients:
             raise ValueError(
-                f"Insufficient participating clients: received {len(client_updates)}, "
+                f"Insufficient participating clients: received {len(valid_updates)}, "
                 f"required minimum is {self.min_clients}."
             )
 
         return federated_averaging_dp(
-            client_updates=client_updates,
+            client_updates=valid_updates,
             clip_threshold=self.clip_threshold,
             noise_multiplier=self.noise_multiplier if self.enable_differential_privacy else 0.0,
             num_rounds=num_rounds,

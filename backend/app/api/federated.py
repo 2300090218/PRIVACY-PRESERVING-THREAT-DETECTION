@@ -21,27 +21,38 @@ router = APIRouter(prefix="/api/federated", tags=["Federated Learning"])
 async def get_federated_status():
     return fl_server.get_status()
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 @router.post("/start")
 async def start_federated_round(db: AsyncSession = Depends(get_db)):
     """Triggers an authentic federated learning round across local client partitions."""
     try:
         result = await fl_server.execute_federated_round(db=db, actor="ADMIN")
+        if not isinstance(result, dict):
+            raise ValueError("Federated server returned invalid round result.")
         return {
             "status": "COMPLETED",
-            "round": result["round"],
-            "model_version": result["model_version"],
+            "round": result.get("round"),
+            "model_version": result.get("model_version"),
             "metrics": {
-                "accuracy": result["accuracy"],
-                "precision": result["precision"],
-                "recall": result["recall"],
-                "f1": result["f1"],
-                "loss": result["loss"],
-                "training_time": result["training_time"],
-                "clients_completed": result["clients_completed"]
-            }
+                "accuracy": result.get("accuracy", 0.0),
+                "precision": result.get("precision", 0.0),
+                "recall": result.get("recall", 0.0),
+                "f1": result.get("f1", 0.0),
+                "loss": result.get("loss", 0.0),
+                "training_time": result.get("training_time", 0.0),
+                "clients_completed": result.get("clients_completed", 0)
+            },
+            "differential_privacy": result.get("differential_privacy")
         }
+    except (ValueError, RuntimeError) as e:
+        logger.warning(f"[FL API] Federated round rejected: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"[FL API] Federated round unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Federated round could not be completed.")
 
 @router.post("/stop")
 async def stop_federated_training():
