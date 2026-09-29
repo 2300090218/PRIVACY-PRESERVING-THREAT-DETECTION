@@ -43,13 +43,40 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
-    # Email / SMTP Configuration (Two-Step Verification)
+    # Email / SMTP Configuration (Gmail / Enterprise SMTP)
+    SMTP_SERVER: Optional[str] = None
+    SMTP_HOST: Optional[str] = None
     AUTH_SMTP_HOST: Optional[str] = None
+    SMTP_PORT: Optional[int] = None
     AUTH_SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_USER: Optional[str] = None
     AUTH_SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
     AUTH_SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
     AUTH_EMAIL_FROM: str = "security-ops@threat-detection.local"
     AUTH_SMTP_USE_TLS: bool = True
+
+    @property
+    def smtp_host(self) -> Optional[str]:
+        return self.SMTP_SERVER or self.SMTP_HOST or self.AUTH_SMTP_HOST
+
+    @property
+    def smtp_port(self) -> int:
+        return self.SMTP_PORT or self.AUTH_SMTP_PORT or 587
+
+    @property
+    def smtp_username(self) -> Optional[str]:
+        return self.SMTP_USERNAME or self.SMTP_USER or self.AUTH_SMTP_USER
+
+    @property
+    def smtp_password(self) -> Optional[str]:
+        return self.SMTP_PASSWORD or self.AUTH_SMTP_PASSWORD
+
+    @property
+    def smtp_from_email(self) -> str:
+        return self.SMTP_FROM_EMAIL or self.AUTH_EMAIL_FROM or "security-ops@threat-detection.local"
 
     # 2FA / OTP & Session Configuration
     AUTH_OTP_EXPIRE_MINUTES: int = 5

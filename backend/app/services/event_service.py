@@ -159,6 +159,15 @@ class EventService:
             "is_test": is_test
         })
 
+        # 12. Update Dynamic Telemetry Detection Accuracy
+        try:
+            from backend.app.routers.telemetry import telemetry_tracker
+            from backend.app.services.test_runner import continuous_monitor
+            telemetry_tracker.record_detection_confidence(detection.confidence, is_test=is_test)
+            await telemetry_tracker.broadcast_live_accuracy(is_monitoring=continuous_monitor.is_running)
+        except Exception:
+            pass
+
         summary = {
             "event_id": event_id,
             "latency_ms": round(total_latency_ms, 2),

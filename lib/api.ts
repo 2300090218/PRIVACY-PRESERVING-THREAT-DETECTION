@@ -61,6 +61,7 @@ export const api = {
   // System Metrics
   getMetrics: () => fetchJson<SystemMetrics>("/api/metrics"),
   getDetectionMetrics: () => fetchJson<any>("/api/metrics/detection"),
+  getTelemetryAccuracy: () => fetchJson<any>("/api/telemetry/accuracy"),
   getTrainingMetrics: () => fetchJson<any[]>("/api/metrics/training"),
 
   // Events
@@ -151,7 +152,7 @@ export const api = {
     if (IS_DEMO_MODE && !isAuthenticated()) {
       throw new Error("Public Demo Mode: Starting federated training requires Administrator credentials.");
     }
-    return fetchJson<any>("/api/federated/start", { method: "POST" });
+    return fetchJson<any>("/api/federated/start-round", { method: "POST" });
   },
   stopFederatedRound: () => {
     if (IS_DEMO_MODE && !isAuthenticated()) {

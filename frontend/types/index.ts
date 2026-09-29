@@ -92,6 +92,7 @@ export interface ClientDevice {
 }
 
 export interface TrainingRound {
+  id?: number;
   round_num: number;
   clients_selected: number;
   clients_completed: number;
@@ -124,6 +125,7 @@ export interface FederatedStatus {
   active_clients: number;
   global_model_version: string;
   differential_privacy?: DifferentialPrivacyMetrics;
+  historical_rounds?: TrainingRound[];
   latest_metrics: {
     accuracy?: number;
     precision?: number;

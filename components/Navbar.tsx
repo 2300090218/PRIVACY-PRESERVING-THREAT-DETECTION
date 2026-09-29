@@ -142,6 +142,9 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
         }
         await api.stopContinuousMonitoring().catch(() => {});
         setIsMonitoring(false);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("threat-detection:monitoring-toggled", { detail: { isMonitoring: false } }));
+        }
         setToastMessage(`Security Monitoring Stopped (Completed ${scanCount} scans)`);
         setTimeout(() => setToastMessage(null), 4000);
       } else {
@@ -155,6 +158,9 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
         } catch (_) {}
 
         setIsMonitoring(true);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("threat-detection:monitoring-toggled", { detail: { isMonitoring: true } }));
+        }
 
         // 3. Fallback: Drive continuous scanning from client to guarantee continuous telemetry on Vercel Serverless
         if (clientMonitorIntervalRef.current) {

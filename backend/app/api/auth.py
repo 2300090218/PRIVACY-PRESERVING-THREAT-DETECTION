@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, joinedload
 
 from backend.app.config import settings
 from backend.app.database import get_db
@@ -21,7 +21,8 @@ from backend.app.models.all_models import (
 )
 from backend.app.schemas.all_schemas import (
     LoginRequest, LoginResponse, VerifyOtpRequest, ResendOtpRequest,
-    ForgotPasswordRequest, ResetPasswordRequest, UserResponse, TokenResponse
+    ForgotPasswordRequest, ResetPasswordRequest, UserResponse, TokenResponse,
+    RegisterRequest
 )
 from backend.app.security.authentication import (
     verify_password, get_password_hash, hash_otp, hash_token,
@@ -52,6 +53,119 @@ def get_client_ip(request: Request) -> Optional[str]:
     if forwarded:
         return forwarded.split(",")[0].strip()
     return request.client.host if request.client else None
+
+@router.post("/register", response_model=LoginResponse)
+@router.post("/signup", response_model=LoginResponse)
+async def register(
+    req: RegisterRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Account Registration:
+    Registers a new user and sends a 6-digit confirmation OTP to their email address.
+    """
+    client_ip = get_client_ip(request)
+    email_clean = (req.email or "").strip().lower()
+
+    if not email_clean or "@" not in email_clean:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A valid email address is required."
+        )
+
+    if len(req.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long."
+        )
+
+    # Check for existing user
+    stmt = select(User).where(User.email == email_clean)
+    res = await db.execute(stmt)
+    existing_user = res.scalars().first()
+
+    if existing_user and existing_user.email_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email address already exists. Please sign in."
+        )
+
+    username_clean = (req.username or email_clean.split("@")[0]).strip().lower()
+    # Ensure username is unique if new user
+    if not existing_user:
+        u_stmt = select(User).where(User.username == username_clean)
+        u_res = await db.execute(u_stmt)
+        if u_res.scalars().first():
+            username_clean = f"{username_clean}_{secrets.randbelow(1000):03d}"
+
+        user = User(
+            username=username_clean,
+            email=email_clean,
+            hashed_password=get_password_hash(req.password),
+            display_name=req.display_name or (req.username or email_clean.split("@")[0]),
+            role=req.role or "ANALYST",
+            organization_id=req.organization_id or "org_enterprise_a",
+            is_active=False,
+            email_verified=False,
+            two_factor_enabled=True,
+            created_at=datetime.now(timezone.utc)
+        )
+        db.add(user)
+        await db.flush()
+    else:
+        user = existing_user
+        user.hashed_password = get_password_hash(req.password)
+        if req.display_name:
+            user.display_name = req.display_name
+
+    # Generate 6-digit confirmation OTP
+    otp_code = f"{secrets.randbelow(1000000):06d}"
+    session_nonce = secrets.token_urlsafe(32)
+    otp_hash = hash_otp(otp_code)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.AUTH_OTP_EXPIRE_MINUTES)
+
+    v_code = EmailVerificationCode(
+        user_id=user.id,
+        otp_hash=otp_hash,
+        session_nonce=session_nonce,
+        purpose="SIGNUP_VERIFY",
+        attempt_count=0,
+        max_attempts=settings.AUTH_OTP_MAX_ATTEMPTS,
+        created_at=datetime.now(timezone.utc),
+        expires_at=expires_at,
+        consumed_at=None
+    )
+    db.add(v_code)
+    await db.flush()
+
+    # Dispatch confirmation OTP email
+    success, smtp_err = await send_verification_otp(
+        to_email=user.email,
+        otp_code=otp_code,
+        expires_minutes=settings.AUTH_OTP_EXPIRE_MINUTES,
+        session_nonce=session_nonce,
+        purpose="SIGNUP_VERIFY"
+    )
+
+    await log_audit(
+        db, actor=user.email, action="SIGNUP_OTP_SENT",
+        resource="auth", resource_id=str(user.id), result="SUCCESS" if success else "WARNING",
+        metadata_payload={"purpose": "SIGNUP_VERIFY", "session_nonce": session_nonce, "ip": client_ip}
+    )
+
+    msg = "Account created. A 6-digit verification code has been dispatched to your email address."
+    if not success and smtp_err:
+        msg = f"Account created, but SMTP delivery warning: {smtp_err}. Please check your email or resend."
+
+    return LoginResponse(
+        status="OTP_SENT",
+        two_factor_required=True,
+        session_nonce=session_nonce,
+        email_masked=mask_email(user.email),
+        expires_in_seconds=settings.AUTH_OTP_EXPIRE_MINUTES * 60,
+        message=msg
+    )
 
 @router.post("/login", response_model=LoginResponse)
 async def login(
@@ -95,7 +209,8 @@ async def login(
             detail="Invalid email or password."
         )
 
-    if not user.is_active:
+    # If user account is inactive but exists, check if email was unverified
+    if not user.is_active and user.email_verified:
         await record_login_attempt(db, identifier=identifier, ip_address=client_ip, attempt_type="PASSWORD", is_success=False)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -104,18 +219,19 @@ async def login(
 
     await record_login_attempt(db, identifier=identifier, ip_address=client_ip, attempt_type="PASSWORD", is_success=True)
 
-    # 4. Two-Step Verification Flow
-    if user.two_factor_enabled:
+    # 4. Two-Step Verification Flow (or signup verification if not yet verified)
+    if user.two_factor_enabled or not user.email_verified:
         otp_code = f"{secrets.randbelow(1000000):06d}"
         session_nonce = secrets.token_urlsafe(32)
         otp_hash = hash_otp(otp_code)
         expires_at = datetime.now(timezone.utc) + timedelta(minutes=settings.AUTH_OTP_EXPIRE_MINUTES)
+        purpose = "SIGNUP_VERIFY" if not user.email_verified else "LOGIN_2FA"
 
         v_code = EmailVerificationCode(
             user_id=user.id,
             otp_hash=otp_hash,
             session_nonce=session_nonce,
-            purpose="LOGIN_2FA",
+            purpose=purpose,
             attempt_count=0,
             max_attempts=settings.AUTH_OTP_MAX_ATTEMPTS,
             created_at=datetime.now(timezone.utc),
@@ -125,19 +241,24 @@ async def login(
         db.add(v_code)
         await db.flush()
 
-        # Dispatch email (safe background handling)
-        await send_verification_otp(
+        # Dispatch email
+        success, smtp_err = await send_verification_otp(
             to_email=user.email,
             otp_code=otp_code,
             expires_minutes=settings.AUTH_OTP_EXPIRE_MINUTES,
-            session_nonce=session_nonce
+            session_nonce=session_nonce,
+            purpose=purpose
         )
 
         await log_audit(
             db, actor=user.email, action="OTP_SENT",
-            resource="auth", resource_id=str(user.id), result="SUCCESS",
-            metadata_payload={"purpose": "LOGIN_2FA", "session_nonce": session_nonce}
+            resource="auth", resource_id=str(user.id), result="SUCCESS" if success else "WARNING",
+            metadata_payload={"purpose": purpose, "session_nonce": session_nonce}
         )
+
+        feedback_msg = "Verification code sent to registered email address."
+        if not success and smtp_err:
+            feedback_msg = f"Verification code generated, but SMTP notice: {smtp_err}"
 
         return LoginResponse(
             status="OTP_SENT",
@@ -145,7 +266,7 @@ async def login(
             session_nonce=session_nonce,
             email_masked=mask_email(user.email),
             expires_in_seconds=settings.AUTH_OTP_EXPIRE_MINUTES * 60,
-            message="Verification code sent to registered email address."
+            message=feedback_msg
         )
 
     # 5. Direct Login (if 2FA explicitly disabled on user account)
@@ -191,6 +312,7 @@ async def login(
     )
 
 @router.post("/verify-otp", response_model=LoginResponse)
+@router.post("/verify-signup", response_model=LoginResponse)
 async def verify_otp(
     req: VerifyOtpRequest,
     request: Request,
@@ -199,19 +321,38 @@ async def verify_otp(
 ):
     """
     Step 2: Validates the one-time verification code and creates an authentic session.
+    Works for both Login 2FA and Account Registration Confirmation.
+    Supports lookup via session_nonce or user email.
     """
     client_ip = get_client_ip(request)
     now = datetime.now(timezone.utc)
+    rate_identifier = req.session_nonce or (req.email.strip().lower() if req.email else client_ip)
 
     # 1. Rate Limit Check
-    await check_rate_limit(db, identifier=req.session_nonce, ip_address=client_ip, attempt_type="OTP")
+    await check_rate_limit(db, identifier=rate_identifier, ip_address=client_ip, attempt_type="OTP")
 
     # 2. Look up Verification Record
-    stmt = (
-        select(EmailVerificationCode)
-        .options(selectinload(EmailVerificationCode.user))
-        .where(EmailVerificationCode.session_nonce == req.session_nonce)
-    )
+    if req.session_nonce:
+        stmt = (
+            select(EmailVerificationCode)
+            .options(joinedload(EmailVerificationCode.user))
+            .where(EmailVerificationCode.session_nonce == req.session_nonce)
+        )
+    elif req.email:
+        clean_email = req.email.strip().lower()
+        stmt = (
+            select(EmailVerificationCode)
+            .join(User)
+            .options(joinedload(EmailVerificationCode.user))
+            .where(User.email == clean_email, EmailVerificationCode.consumed_at.is_(None))
+            .order_by(EmailVerificationCode.id.desc())
+        )
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Session nonce or email address is required for verification."
+        )
+
     res = await db.execute(stmt)
     v_code = res.scalars().first()
 
@@ -256,7 +397,7 @@ async def verify_otp(
     if not hmac.compare_digest(v_code.otp_hash, provided_hash):
         v_code.attempt_count += 1
         await db.flush()
-        await record_login_attempt(db, identifier=req.session_nonce, ip_address=client_ip, attempt_type="OTP", is_success=False)
+        await record_login_attempt(db, identifier=rate_identifier, ip_address=client_ip, attempt_type="OTP", is_success=False)
         await log_audit(
             db, actor=v_code.user.email, action="OTP_FAILED",
             resource="auth", resource_id=str(v_code.user.id), result="FAILURE",
@@ -271,18 +412,27 @@ async def verify_otp(
     # 4. OTP Successfully Verified
     v_code.consumed_at = now
     user = v_code.user
+    user_id = user.id
+    user_email = user.email
+    user_username = user.username
+    user_role = user.role
+    user_org = user.organization_id
+    user_display = user.display_name or user.username
+    purpose = v_code.purpose
+
     user.last_login_at = now
     user.email_verified = True
+    user.is_active = True
 
     # 5. Create Session & Issue Tokens
     raw_token, session_rec = await create_user_session(
         user=user, db=db, ip_address=client_ip, user_agent=request.headers.get("user-agent")
     )
     access_token = create_access_token(data={
-        "sub": user.username,
-        "email": user.email,
-        "role": user.role,
-        "organization_id": user.organization_id
+        "sub": user_username,
+        "email": user_email,
+        "role": user_role,
+        "organization_id": user_org
     })
 
     # Set Secure HttpOnly Cookie
@@ -295,27 +445,35 @@ async def verify_otp(
         max_age=settings.AUTH_SESSION_EXPIRE_DAYS * 86400
     )
 
-    await record_login_attempt(db, identifier=req.session_nonce, ip_address=client_ip, attempt_type="OTP", is_success=True)
+    await record_login_attempt(db, identifier=rate_identifier, ip_address=client_ip, attempt_type="OTP", is_success=True)
     await log_audit(
-        db, actor=user.email, action="OTP_VERIFIED",
-        resource="auth", resource_id=str(user.id), result="SUCCESS"
+        db, actor=user_email, action="OTP_VERIFIED",
+        resource="auth", resource_id=str(user_id), result="SUCCESS",
+        metadata_payload={"purpose": purpose}
     )
     await log_audit(
-        db, actor=user.email, action="LOGIN_SUCCESS",
-        resource="auth", resource_id=str(user.id), result="SUCCESS",
-        metadata_payload={"method": "EMAIL_2FA", "ip": client_ip}
+        db, actor=user_email, action="LOGIN_SUCCESS",
+        resource="auth", resource_id=str(user_id), result="SUCCESS",
+        metadata_payload={"method": purpose, "ip": client_ip}
+    )
+
+    welcome_msg = (
+        "Account confirmed and authenticated successfully! Welcome to the console."
+        if purpose in ["SIGNUP", "SIGNUP_VERIFY"]
+        else "Authenticated successfully. Welcome back!"
     )
 
     return LoginResponse(
         status="AUTHENTICATED",
         access_token=access_token,
         token_type="bearer",
-        role=user.role,
-        username=user.username,
-        email=user.email,
-        display_name=user.display_name or user.username,
-        organization_id=user.organization_id,
-        message="Authenticated successfully. Welcome back!"
+        role=user_role,
+        username=user_username,
+        email=user_email,
+        display_name=user_display,
+        organization_id=user_org,
+        message=welcome_msg,
+        email_verified=True
     )
 
 @router.post("/resend-otp")
@@ -359,21 +517,26 @@ async def resend_otp(
     v_code.expires_at = now + timedelta(minutes=settings.AUTH_OTP_EXPIRE_MINUTES)
     await db.flush()
 
-    await send_verification_otp(
+    success, smtp_err = await send_verification_otp(
         to_email=v_code.user.email,
         otp_code=new_otp,
         expires_minutes=settings.AUTH_OTP_EXPIRE_MINUTES,
-        session_nonce=v_code.session_nonce
+        session_nonce=v_code.session_nonce,
+        purpose=v_code.purpose or "LOGIN_2FA"
     )
     await log_audit(
         db, actor=v_code.user.email, action="OTP_SENT",
-        resource="auth", resource_id=str(v_code.user.id), result="SUCCESS",
-        metadata_payload={"type": "RESEND", "ip": client_ip}
+        resource="auth", resource_id=str(v_code.user.id), result="SUCCESS" if success else "WARNING",
+        metadata_payload={"type": "RESEND", "ip": client_ip, "purpose": v_code.purpose}
     )
+
+    msg = "A new verification code has been dispatched to your email."
+    if not success and smtp_err:
+        msg = f"New verification code generated, but SMTP notice: {smtp_err}"
 
     return {
         "status": "OTP_SENT",
-        "message": "A new verification code has been dispatched to your email.",
+        "message": msg,
         "expires_in_seconds": settings.AUTH_OTP_EXPIRE_MINUTES * 60
     }
 
@@ -410,15 +573,18 @@ async def forgot_password(
     req: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Issues a single-use password reset token via email."""
+    """Issues a 6-digit password reset OTP and reset token via email."""
     email_clean = req.email.strip().lower()
     stmt = select(User).where(User.email == email_clean)
     res = await db.execute(stmt)
     user = res.scalars().first()
 
+    session_nonce = secrets.token_urlsafe(32)
     if user and user.is_active:
         raw_token = secrets.token_urlsafe(32)
         t_hash = hash_token(raw_token)
+        otp_code = f"{secrets.randbelow(1000000):06d}"
+        otp_hash = hash_otp(otp_code)
         expires = datetime.now(timezone.utc) + timedelta(minutes=15)
 
         reset_rec = PasswordResetToken(
@@ -429,17 +595,32 @@ async def forgot_password(
             consumed_at=None
         )
         db.add(reset_rec)
+
+        v_code = EmailVerificationCode(
+            user_id=user.id,
+            otp_hash=otp_hash,
+            session_nonce=session_nonce,
+            purpose="PASSWORD_RESET",
+            attempt_count=0,
+            max_attempts=5,
+            created_at=datetime.now(timezone.utc),
+            expires_at=expires,
+            consumed_at=None
+        )
+        db.add(v_code)
         await db.flush()
 
-        await send_password_reset_email(to_email=user.email, reset_token=raw_token)
+        await send_password_reset_email(to_email=user.email, reset_token=raw_token, otp_code=otp_code)
         await log_audit(
             db, actor=user.email, action="PASSWORD_RESET_REQUESTED",
             resource="auth", resource_id=str(user.id), result="SUCCESS"
         )
 
-    # Always return generic message to prevent account enumeration
+    # Always return standard message with session_nonce to prevent account enumeration
     return {
-        "message": "If an active account exists for this email, password reset instructions have been sent."
+        "status": "RESET_SENT",
+        "session_nonce": session_nonce,
+        "message": "If an active account exists for this email, password reset instructions and a 6-digit code have been sent."
     }
 
 @router.post("/reset-password")
@@ -447,9 +628,15 @@ async def reset_password(
     req: ResetPasswordRequest,
     db: AsyncSession = Depends(get_db)
 ):
-    """Verifies reset token and updates the user's password with modern bcrypt."""
+    """Verifies reset code or token and updates the user's password with modern bcrypt."""
     now = datetime.now(timezone.utc)
-    t_hash = hash_token(req.token)
+    code_or_token = (req.token or req.otp or req.code or "").strip()
+
+    if not code_or_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reset token or 6-digit verification code is required."
+        )
 
     if len(req.new_password) < 8:
         raise HTTPException(
@@ -457,22 +644,56 @@ async def reset_password(
             detail="Password must be at least 8 characters long."
         )
 
-    stmt = (
-        select(PasswordResetToken)
-        .options(selectinload(PasswordResetToken.user))
-        .where(PasswordResetToken.token_hash == t_hash)
-    )
-    res = await db.execute(stmt)
-    rec = res.scalars().first()
+    user = None
+    target_reset_rec = None
+    target_v_code = None
 
-    if not rec or not rec.user or rec.consumed_at is not None or now > to_utc(rec.expires_at):
+    # Check 6-digit OTP code in EmailVerificationCode first
+    if len(code_or_token) == 6 and code_or_token.isdigit():
+        provided_otp_hash = hash_otp(code_or_token)
+        v_stmt = (
+            select(EmailVerificationCode)
+            .options(selectinload(EmailVerificationCode.user))
+            .where(
+                EmailVerificationCode.otp_hash == provided_otp_hash,
+                EmailVerificationCode.purpose == "PASSWORD_RESET",
+                EmailVerificationCode.consumed_at == None
+            )
+        )
+        v_res = await db.execute(v_stmt)
+        v_rec = v_res.scalars().first()
+        if v_rec and now <= to_utc(v_rec.expires_at):
+            user = v_rec.user
+            target_v_code = v_rec
+
+    # Fallback to checking PasswordResetToken by token hash
+    if not user:
+        t_hash = hash_token(code_or_token)
+        t_stmt = (
+            select(PasswordResetToken)
+            .options(selectinload(PasswordResetToken.user))
+            .where(
+                PasswordResetToken.token_hash == t_hash,
+                PasswordResetToken.consumed_at == None
+            )
+        )
+        t_res = await db.execute(t_stmt)
+        t_rec = t_res.scalars().first()
+        if t_rec and now <= to_utc(t_rec.expires_at):
+            user = t_rec.user
+            target_reset_rec = t_rec
+
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Password reset token is invalid or has expired."
+            detail="Password reset code or token is invalid or has expired."
         )
 
-    rec.consumed_at = now
-    user = rec.user
+    if target_v_code:
+        target_v_code.consumed_at = now
+    if target_reset_rec:
+        target_reset_rec.consumed_at = now
+
     user.hashed_password = get_password_hash(req.new_password)
     user.updated_at = now
 

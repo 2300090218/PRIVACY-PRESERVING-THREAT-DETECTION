@@ -590,6 +590,13 @@ export default function LoginPage() {
                 <span>Sign In</span>
               )}
             </button>
+
+            <div className="pt-2 text-center text-xs text-slate-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-800">
+                Create Account
+              </Link>
+            </div>
           </form>
         )}
 

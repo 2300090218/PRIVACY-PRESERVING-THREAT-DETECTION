@@ -41,6 +41,8 @@ from backend.app.api.test_routes import router as test_router
 from backend.app.api.v1 import api_v1_router
 from backend.app.api.v1.organizations import router as v1_org_router
 from backend.app.api.v1.agents import router as v1_agents_router
+from backend.app.routers.telemetry import router as telemetry_router
+from backend.app.routers.federated import router as federated_v1_router
 
 async def initialize_platform():
     """Initializes Database schema and default seed data if not present."""
@@ -452,6 +454,8 @@ app.include_router(api_v1_router)
 # Mount Organizations and Agents under /api as well for compatibility
 app.include_router(v1_org_router, prefix="/api")
 app.include_router(v1_agents_router, prefix="/api")
+app.include_router(telemetry_router)
+app.include_router(federated_v1_router)
 
 # Include Legacy Routers for Backward Compatibility
 app.include_router(auth_router)

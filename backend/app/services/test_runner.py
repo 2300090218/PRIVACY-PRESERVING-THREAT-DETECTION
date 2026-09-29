@@ -280,8 +280,12 @@ class ContinuousMonitor:
                     await session.commit()
                     self.total_scans += 1
                     self.last_scan = res
-                    # Broadcast real-time continuous status
                     await ws_manager.broadcast("monitoring.status", self.get_status())
+                    try:
+                        from backend.app.routers.telemetry import telemetry_tracker
+                        await telemetry_tracker.broadcast_live_accuracy(is_monitoring=True)
+                    except Exception:
+                        pass
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -300,6 +304,12 @@ class ContinuousMonitor:
         self.interval_seconds = max(1.5, interval_seconds)
         self.started_at = time.time()
         self._task = asyncio.create_task(self._loop())
+        try:
+            asyncio.create_task(ws_manager.broadcast("monitoring.status", self.get_status()))
+            from backend.app.routers.telemetry import telemetry_tracker
+            asyncio.create_task(telemetry_tracker.broadcast_live_accuracy(is_monitoring=True))
+        except Exception:
+            pass
         return self.get_status()
 
     def stop(self) -> Dict[str, Any]:
@@ -307,6 +317,12 @@ class ContinuousMonitor:
         if self._task and not self._task.done():
             self._task.cancel()
             self._task = None
+        try:
+            asyncio.create_task(ws_manager.broadcast("monitoring.status", self.get_status()))
+            from backend.app.routers.telemetry import telemetry_tracker
+            asyncio.create_task(telemetry_tracker.broadcast_live_accuracy(is_monitoring=False))
+        except Exception:
+            pass
         return self.get_status()
 
     def get_status(self) -> Dict[str, Any]:

@@ -13,7 +13,14 @@ class LoginRequest(BaseModel):
     password: str
 
 class VerifyOtpRequest(BaseModel):
-    session_nonce: str
+    session_nonce: Optional[str] = None
+    email: Optional[str] = None
+    code: Optional[str] = None
+    otp: Optional[str] = None
+
+class VerifySignupRequest(BaseModel):
+    email: Optional[str] = None
+    session_nonce: Optional[str] = None
     code: Optional[str] = None
     otp: Optional[str] = None
 
@@ -23,8 +30,18 @@ class ResendOtpRequest(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     email: str
 
+class RegisterRequest(BaseModel):
+    email: str
+    password: str
+    username: Optional[str] = None
+    display_name: Optional[str] = None
+    role: Optional[str] = "ANALYST"
+    organization_id: Optional[str] = "org_enterprise_a"
+
 class ResetPasswordRequest(BaseModel):
-    token: str
+    token: Optional[str] = None
+    otp: Optional[str] = None
+    code: Optional[str] = None
     new_password: str
 
 class LoginResponse(BaseModel):
@@ -41,6 +58,7 @@ class LoginResponse(BaseModel):
     display_name: Optional[str] = None
     organization_id: Optional[str] = None
     message: Optional[str] = None
+    email_verified: Optional[bool] = None
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -269,6 +287,8 @@ class FederatedStatusResponse(BaseModel):
     global_model_version: str
     latest_metrics: Dict[str, Any]
     last_aggregation: Optional[datetime]
+    differential_privacy: Optional[Dict[str, Any]] = None
+    historical_rounds: Optional[List[Dict[str, Any]]] = None
 
 # Model Schemas
 class ModelVersionResponse(BaseModel):
