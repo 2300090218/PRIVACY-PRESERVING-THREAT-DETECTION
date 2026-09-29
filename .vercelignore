@@ -1,0 +1,17 @@
+# Vercel Deployment Exclusions
+# Exclude agent automation rules, internal documentation, test artifacts, and credentials
+.agents/
+AUTO_DEPLOY_INSTRUCTIONS.md
+*.md
+!README.md
+API_KEYS_AND_CREDENTIALS.docx
+scratch/
+backend_err.log
+backend_out.log
+backend_platform.log
+frontend_platform.log
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+.pytest_cache/
