@@ -41,7 +41,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-slate-950 text-slate-100">
+    <div className="flex flex-col h-full overflow-hidden bg-slate-50 text-slate-900">
       <Navbar
         wsStatus={wsStatus}
         mode={health?.mode || "TEST"}
@@ -50,7 +50,7 @@ export function ClientShell({ children }: { children: React.ReactNode }) {
       />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-6 text-slate-100">
+        <main className="flex-1 overflow-y-auto bg-slate-50 p-6 text-slate-900">
           <div className="max-w-7xl mx-auto space-y-6">{children}</div>
         </main>
       </div>

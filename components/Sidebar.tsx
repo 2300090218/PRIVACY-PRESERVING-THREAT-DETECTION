@@ -43,9 +43,9 @@ export function Sidebar() {
   const authed = isAuthenticated();
 
   return (
-    <aside className="w-64 bg-slate-900/90 border-r border-slate-800/80 flex flex-col justify-between shrink-0 select-none text-slate-300">
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 select-none text-slate-600">
       <div className="p-4 space-y-1">
-        <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+        <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
           Navigation
         </div>
         <nav className="space-y-0.5">
@@ -58,17 +58,17 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-indigo-600/15 text-indigo-300 font-semibold border border-indigo-500/30 shadow-xs"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                    ? "bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
-                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-400" : "text-slate-400 group-hover:text-slate-300"}`} />
+                <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"}`} />
                 <span>{item.label}</span>
                 {IS_DEMO_MODE && !authed && isProtectedAdmin && (
                   <span
-                    className="ml-auto flex items-center text-slate-500 group-hover:text-slate-400 transition-colors"
+                    className="ml-auto flex items-center text-slate-400 group-hover:text-slate-600 transition-colors"
                     title="Restricted Admin Route"
                     aria-label="Restricted Admin Route"
                   >
@@ -82,13 +82,13 @@ export function Sidebar() {
       </div>
 
       {/* Privacy Guarantee Footer Pill */}
-      <div className="p-4 border-t border-slate-800/80">
-        <div className="bg-slate-950/70 p-3 rounded-lg border border-slate-800/80 shadow-xs space-y-1.5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-            <Lock className="h-3.5 w-3.5 text-emerald-400" />
+      <div className="p-4 border-t border-slate-200/80">
+        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200/80 shadow-xs space-y-1.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
+            <Lock className="h-3.5 w-3.5 text-emerald-600" />
             <span>Privacy Guard Active</span>
           </div>
-          <p className="text-[11px] text-slate-400 leading-tight">
+          <p className="text-[11px] text-slate-500 leading-tight">
             Telemetry is sanitized locally. Raw training records never leave participating clients.
           </p>
         </div>

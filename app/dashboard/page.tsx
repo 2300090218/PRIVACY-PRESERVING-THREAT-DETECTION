@@ -165,7 +165,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadAllData();
-    // Background polling frequency
     const pollInterval = wsStatus === "CONNECTED" ? 15000 : 3500;
     const interval = setInterval(loadAllData, pollInterval);
     return () => clearInterval(interval);
@@ -224,7 +223,7 @@ export default function DashboardPage() {
 
   return (
     <ClientShell>
-      {/* SECTION 1: CONSOLIDATED 4 METRIC CARDS (No Micro-Pill Spam) */}
+      {/* SECTION 1: CONSOLIDATED 4 METRIC CARDS (Professional Light UI) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Threat Posture */}
         <MetricCard
@@ -232,8 +231,8 @@ export default function DashboardPage() {
           value={threatPostureValue}
           statusColor={threatStatusColor}
           icon={ShieldAlert}
-          iconColor={hasCritical ? "text-rose-400" : hasHigh ? "text-amber-400" : "text-emerald-400"}
-          subtitle={`${activeAlerts.length} Active Alerts Monitored`}
+          iconColor={hasCritical ? "text-rose-600" : hasHigh ? "text-amber-600" : "text-emerald-600"}
+          subtitle={`${activeAlerts.length} Active Incidents Monitored`}
         />
 
         {/* Card 2: System Health */}
@@ -242,7 +241,7 @@ export default function DashboardPage() {
           value="Healthy"
           statusColor="green"
           icon={Activity}
-          iconColor="text-emerald-400"
+          iconColor="text-emerald-600"
           subtitle="100% Subsystems Active"
         />
 
@@ -251,7 +250,7 @@ export default function DashboardPage() {
           title="Detection Accuracy"
           value={dynamicAccuracyStr || "97.29%"}
           icon={Target}
-          iconColor="text-indigo-400"
+          iconColor="text-indigo-600"
           subtitle={accuracySubtext || "Evaluated on held-out test split"}
         />
 
@@ -261,39 +260,39 @@ export default function DashboardPage() {
           value="Active"
           statusColor="green"
           icon={Lock}
-          iconColor="text-emerald-400"
+          iconColor="text-emerald-600"
           subtitle="Zero-Trust Minimization"
         />
       </div>
 
       {/* SECTION 2: MAIN (GLOBAL THREAT INTELLIGENCE & REAL-TIME ALERTS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Sleek Dark SVG World Map / Telemetry Widget (7 cols) */}
+        {/* Sleek Light SVG World Map / Telemetry Widget (7 cols) */}
         <div className="lg:col-span-7">
           <ThreatMap events={recentEvents} detections={recentDetections} />
         </div>
 
         {/* Real-Time Alerts Feed (5 cols) */}
-        <div className="lg:col-span-5 bg-slate-900/80 rounded-xl border border-slate-800/80 p-5 shadow-sm flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-white rounded-xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
-                <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                   Real-Time Alerts
                 </h2>
               </div>
-              <span className="text-[11px] font-medium text-slate-500">
+              <span className="text-[11px] font-medium text-slate-400">
                 Live WebSocket Stream
               </span>
             </div>
 
             <div className="mt-3.5 space-y-2 max-h-[360px] overflow-y-auto pr-1">
               {alerts.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 space-y-2">
-                  <CheckCircle className="h-8 w-8 mx-auto text-slate-600" />
-                  <p className="text-xs font-medium text-slate-400">No active alerts</p>
-                  <p className="text-[11px] text-slate-500">
+                <div className="py-12 text-center text-slate-400 space-y-2">
+                  <CheckCircle className="h-8 w-8 mx-auto text-slate-300" />
+                  <p className="text-xs font-medium text-slate-600">No active alerts</p>
+                  <p className="text-[11px] text-slate-400">
                     Click &quot;Run Security Test&quot; above to simulate an attack vector safely.
                   </p>
                 </div>
@@ -301,15 +300,15 @@ export default function DashboardPage() {
                 alerts.slice(0, 5).map((alert) => {
                   const severityBadgeStyle =
                     alert.severity === "CRITICAL" || alert.severity === "HIGH"
-                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                      ? "bg-rose-50 text-rose-700 border-rose-200"
                       : alert.severity === "MEDIUM"
-                      ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                      : "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                      ? "bg-amber-50 text-amber-700 border-amber-200"
+                      : "bg-blue-50 text-blue-700 border-blue-200";
 
                   return (
                     <div
                       key={alert.alert_id}
-                      className="p-2.5 rounded-lg border border-slate-800/70 bg-slate-950/60 hover:bg-slate-800/50 hover:border-slate-700/80 transition-all space-y-1.5"
+                      className="p-2.5 rounded-lg border border-slate-200/90 bg-slate-50/70 hover:bg-white hover:border-slate-300 transition-all space-y-1.5"
                     >
                       <div className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
@@ -318,21 +317,21 @@ export default function DashboardPage() {
                           >
                             {alert.severity}
                           </span>
-                          <span className="font-semibold text-slate-200">{alert.attack_type}</span>
+                          <span className="font-bold text-slate-800">{alert.attack_type}</span>
                         </div>
-                        <span className="text-[11px] font-mono text-slate-400">
-                          Risk: <span className="text-slate-200 font-semibold">{alert.risk_score}</span>
+                        <span className="text-[11px] font-mono text-slate-500">
+                          Risk: <span className="text-slate-800 font-bold">{alert.risk_score}</span>
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between text-xs text-slate-400">
-                        <span className="font-mono text-[11px] text-slate-400 truncate max-w-[140px]">
+                      <div className="flex items-center justify-between text-xs text-slate-500">
+                        <span className="font-mono text-[11px] text-slate-500 truncate max-w-[140px]">
                           Origin: {alert.client_id}
                         </span>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[11px] text-slate-500">
                           Conf: {(alert.confidence * 100).toFixed(1)}%
                         </span>
-                        <span className="text-[10px] text-slate-500">
+                        <span className="text-[10px] text-slate-400">
                           {new Date(alert.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -343,9 +342,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="pt-3 mt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Total Alerts: {alerts.length}</span>
-            <a href="/alerts" className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
+            <a href="/alerts" className="text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
               View All Alerts <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -355,37 +354,37 @@ export default function DashboardPage() {
       {/* SECTION 3: SECONDARY (THREAT STATISTICS & RECENT THREATS) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Threat Distribution Chart (6 cols) */}
-        <div className="lg:col-span-6 bg-slate-900/80 rounded-xl border border-slate-800/80 p-5 shadow-sm space-y-4">
+        <div className="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-rose-400" />
-              <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+              <Flame className="h-4 w-4 text-rose-600" />
+              <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                 Detected Attack Profiles
               </h2>
             </div>
-            <span className="text-[11px] font-medium text-slate-500">
+            <span className="text-[11px] font-medium text-slate-400">
               Scikit-Learn Heuristic Model
             </span>
           </div>
 
           <div className="h-56">
             {attackDistData.length === 0 ? (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500">
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">
                 No threat statistics recorded yet
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={attackDistData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                  <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 11 }} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#0f172a",
-                      borderColor: "#334155",
-                      color: "#f8fafc",
+                      color: "#ffffff",
                       borderRadius: "8px",
                       fontSize: "12px",
+                      border: "none",
                     }}
                   />
                   <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -396,55 +395,55 @@ export default function DashboardPage() {
         </div>
 
         {/* Recent Threat Detections Ledger (6 cols) */}
-        <div className="lg:col-span-6 bg-slate-900/80 rounded-xl border border-slate-800/80 p-5 shadow-sm space-y-3 flex flex-col justify-between">
+        <div className="lg:col-span-6 bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-3 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <Radio className="h-4 w-4 text-indigo-400" />
-                <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                <Radio className="h-4 w-4 text-indigo-600" />
+                <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                   Recent Threat Detections
                 </h2>
               </div>
-              <span className="text-[11px] font-medium text-slate-500">
+              <span className="text-[11px] font-medium text-slate-400">
                 Dual Rule + ML Inference
               </span>
             </div>
 
             <div className="mt-3 space-y-2 max-h-52 overflow-y-auto pr-1">
               {recentDetections.length === 0 ? (
-                <div className="py-8 text-center text-xs text-slate-500">
+                <div className="py-8 text-center text-xs text-slate-400">
                   No detections logged yet
                 </div>
               ) : (
                 recentDetections.slice(0, 4).map((d) => (
                   <div
                     key={d.id}
-                    className="flex items-center justify-between p-2.5 rounded-lg border border-slate-800/60 bg-slate-950/50 hover:bg-slate-800/40 text-xs transition-colors"
+                    className="flex items-center justify-between p-2.5 rounded-lg border border-slate-100 bg-slate-50/80 hover:bg-slate-100/80 text-xs transition-colors"
                   >
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-slate-200">{d.attack_type}</span>
+                        <span className="font-bold text-slate-900">{d.attack_type}</span>
                         <span
                           className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
                             d.prediction === "MALICIOUS"
-                              ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                              ? "bg-rose-50 text-rose-700 border-rose-200"
                               : d.prediction === "SUSPICIOUS"
-                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
-                              : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-emerald-50 text-emerald-700 border-emerald-200"
                           }`}
                         >
                           {d.prediction}
                         </span>
                       </div>
-                      <p className="text-[10px] text-slate-500 font-mono">
+                      <p className="text-[10px] text-slate-400 font-mono">
                         Event: {d.event_id} | Model: {d.model_version}
                       </p>
                     </div>
                     <div className="text-right">
-                      <span className="font-semibold text-slate-300">
+                      <span className="font-semibold text-slate-700">
                         {(d.confidence * 100).toFixed(1)}% Conf
                       </span>
-                      <p className="text-[10px] text-slate-500 font-mono">{d.processing_latency_ms} ms</p>
+                      <p className="text-[10px] text-slate-400 font-mono">{d.processing_latency_ms} ms</p>
                     </div>
                   </div>
                 ))
@@ -452,9 +451,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>Active Incidents: {incidents.length}</span>
-            <a href="/threats" className="text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1">
+            <a href="/threats" className="text-indigo-600 hover:text-indigo-700 font-semibold flex items-center gap-1">
               View All Detections <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -462,12 +461,12 @@ export default function DashboardPage() {
       </div>
 
       {/* SECTION 4: FEDERATED LEARNING OVERVIEW */}
-      <div className="bg-slate-900/80 rounded-xl border border-slate-800/80 p-5 shadow-sm space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Share2 className="h-4 w-4 text-indigo-400" />
+            <Share2 className="h-4 w-4 text-indigo-600" />
             <div>
-              <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+              <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
                 Federated Learning Cluster
               </h2>
               <p className="text-xs text-slate-500">
@@ -476,10 +475,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs font-medium px-2.5 py-1 rounded bg-slate-800 text-indigo-300 border border-slate-700">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
               Round: {flStatus?.current_round || 1} / {flStatus?.max_rounds || 5}
             </span>
-            <span className="text-xs font-medium px-2.5 py-1 rounded bg-slate-800 text-emerald-300 border border-slate-700">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
               Model: {flStatus?.global_model_version || "global-v1"}
             </span>
           </div>
@@ -488,36 +487,36 @@ export default function DashboardPage() {
         {/* Federated Clients Status Tiles */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {clients.length === 0 ? (
-            <div className="col-span-3 py-6 text-center text-xs text-slate-500">
+            <div className="col-span-3 py-6 text-center text-xs text-slate-400">
               No federated clients connected
             </div>
           ) : (
             clients.map((c) => (
               <div
                 key={c.client_id}
-                className="p-3.5 rounded-lg border border-slate-800/60 bg-slate-950/50 space-y-2"
+                className="p-3.5 rounded-lg border border-slate-200 bg-slate-50/70 space-y-2"
               >
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2">
-                    <Server className="h-3.5 w-3.5 text-indigo-400" />
-                    <span className="font-semibold text-slate-200">{c.name}</span>
+                    <Server className="h-3.5 w-3.5 text-indigo-600" />
+                    <span className="font-bold text-slate-900">{c.name}</span>
                   </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
                     {c.status}
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-400 space-y-0.5">
+                <div className="text-[11px] text-slate-500 space-y-0.5">
                   <div className="flex justify-between">
                     <span>ID: {c.client_id}</span>
-                    <span className="font-mono text-[10px] text-slate-500">{c.ip_address || "Internal Subnet"}</span>
+                    <span className="font-mono text-[10px] text-slate-400">{c.ip_address || "Internal Subnet"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Local Model:</span>
-                    <span className="font-medium text-slate-300">{c.model_version}</span>
+                    <span className="font-semibold text-slate-700">{c.model_version}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Raw Data Shared:</span>
-                    <span className="font-semibold text-emerald-400">NO (Local Only)</span>
+                    <span className="font-bold text-emerald-600">NO (Local Only)</span>
                   </div>
                 </div>
               </div>
@@ -528,26 +527,26 @@ export default function DashboardPage() {
         {/* Federated Training Loss & Accuracy Chart */}
         {trainingMetrics.length > 0 && (
           <div className="pt-2">
-            <h3 className="text-xs font-semibold tracking-wider text-slate-400 uppercase mb-2">
+            <h3 className="text-xs font-bold tracking-wider text-slate-500 uppercase mb-2">
               Global Model Evolution (FedAvg Test Evaluation)
             </h3>
             <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trainingMetrics}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis
                     dataKey="round"
-                    tick={{ fill: "#94a3b8", fontSize: 11 }}
-                    label={{ value: "Round", position: "insideBottom", offset: -2, fill: "#94a3b8" }}
+                    tick={{ fill: "#64748b", fontSize: 11 }}
+                    label={{ value: "Round", position: "insideBottom", offset: -2, fill: "#64748b" }}
                   />
-                  <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} domain={[0.7, 1.0]} />
+                  <YAxis tick={{ fill: "#64748b", fontSize: 11 }} domain={[0.7, 1.0]} />
                   <Tooltip
                     contentStyle={{
                       backgroundColor: "#0f172a",
-                      borderColor: "#334155",
-                      color: "#f8fafc",
+                      color: "#ffffff",
                       borderRadius: "8px",
                       fontSize: "12px",
+                      border: "none",
                     }}
                   />
                   <Line

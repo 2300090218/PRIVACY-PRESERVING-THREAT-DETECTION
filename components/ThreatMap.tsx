@@ -65,57 +65,57 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
   const [selectedNode, setSelectedNode] = useState<RegionNode>(REGION_NODES[0]);
 
   return (
-    <div className="bg-slate-900/80 rounded-xl border border-slate-800/80 p-5 shadow-sm space-y-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-indigo-400" />
-          <h2 className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
+          <Globe className="h-4 w-4 text-indigo-600" />
+          <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
             Global Telemetry Origins & Threat Distribution
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-slate-700/60">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
             3 Ingestion Regions Online
           </span>
         </div>
       </div>
 
       {/* SVG World Map Canvas */}
-      <div className="relative w-full h-64 sm:h-72 rounded-lg bg-slate-950/90 border border-slate-800/80 overflow-hidden flex items-center justify-center p-2">
+      <div className="relative w-full h-64 sm:h-72 rounded-lg bg-slate-50/70 border border-slate-200 overflow-hidden flex items-center justify-center p-2">
         <svg
           viewBox="0 0 1000 440"
           className="w-full h-full select-none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <defs>
-            <linearGradient id="arcGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="arcGradientLight1" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
               <stop offset="50%" stopColor="#6366f1" stopOpacity="0.6" />
               <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
             </linearGradient>
-            <linearGradient id="arcGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id="arcGradientLight2" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#a855f7" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#818cf8" stopOpacity="0.8" />
+              <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.8" />
             </linearGradient>
-            <radialGradient id="glowUsEast" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.6" />
+            <radialGradient id="glowUsEastLight" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
               <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
             </radialGradient>
-            <radialGradient id="glowEuWest" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.6" />
+            <radialGradient id="glowEuWestLight" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.35" />
               <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
             </radialGradient>
-            <radialGradient id="glowApac" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#818cf8" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
+            <radialGradient id="glowApacLight" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
             </radialGradient>
           </defs>
 
           {/* Coordinate Grid Lines */}
-          <g stroke="#1e293b" strokeWidth="0.8" opacity="0.6">
+          <g stroke="#e2e8f0" strokeWidth="0.8" opacity="0.8">
             <line x1="0" y1="110" x2="1000" y2="110" strokeDasharray="4 6" />
             <line x1="0" y1="220" x2="1000" y2="220" />
             <line x1="0" y1="330" x2="1000" y2="330" strokeDasharray="4 6" />
@@ -124,8 +124,8 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
             <line x1="750" y1="0" x2="750" y2="440" strokeDasharray="4 6" />
           </g>
 
-          {/* World Landmass Silhouettes (Accurate stylized low-poly dark slate vector continents) */}
-          <g fill="#1e293b" stroke="#334155" strokeWidth="0.75" opacity="0.85">
+          {/* World Landmass Silhouettes (Crisp clean vector landmasses in slate-200) */}
+          <g fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="0.75">
             {/* North America */}
             <path d="M 120 70 L 150 50 L 220 50 L 280 80 L 310 110 L 290 150 L 260 170 L 230 220 L 205 180 L 170 170 L 140 140 L 110 110 Z" />
             <path d="M 170 45 L 210 30 L 250 40 L 230 48 Z" />
@@ -156,40 +156,40 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
             <path
               d="M 270 135 Q 385 75 505 115"
               fill="none"
-              stroke="url(#arcGradient1)"
-              strokeWidth="1.5"
+              stroke="url(#arcGradientLight1)"
+              strokeWidth="2"
               strokeDasharray="4 4"
             />
             <path
               d="M 505 115 Q 640 85 775 165"
               fill="none"
-              stroke="url(#arcGradient2)"
-              strokeWidth="1.5"
+              stroke="url(#arcGradientLight2)"
+              strokeWidth="2"
               strokeDasharray="4 4"
             />
             <path
               d="M 270 135 Q 260 210 320 290"
               fill="none"
-              stroke="#475569"
-              strokeWidth="1"
+              stroke="#94a3b8"
+              strokeWidth="1.2"
               strokeDasharray="3 3"
-              opacity="0.4"
+              opacity="0.6"
             />
           </g>
 
           {/* Regional Nodes / Threat Telemetry Dots */}
           {/* US West Auxiliary Dot */}
           <g>
-            <circle cx="190" cy="120" r="4" fill="#38bdf8" opacity="0.8" />
-            <text x="190" y="108" fill="#64748b" fontSize="9" fontWeight="500" textAnchor="middle">
+            <circle cx="190" cy="120" r="4" fill="#0284c7" opacity="0.8" />
+            <text x="190" y="108" fill="#64748b" fontSize="9" fontWeight="600" textAnchor="middle">
               US-West
             </text>
           </g>
 
           {/* South America Relay Dot */}
           <g>
-            <circle cx="320" cy="290" r="4" fill="#64748b" opacity="0.7" />
-            <text x="320" y="308" fill="#64748b" fontSize="9" fontWeight="500" textAnchor="middle">
+            <circle cx="320" cy="290" r="4" fill="#64748b" opacity="0.8" />
+            <text x="320" y="308" fill="#64748b" fontSize="9" fontWeight="600" textAnchor="middle">
               SA-East
             </text>
           </g>
@@ -207,13 +207,13 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r="16"
+                  r="18"
                   fill={`url(#${
                     node.statusColor === "emerald"
-                      ? "glowUsEast"
+                      ? "glowUsEastLight"
                       : node.statusColor === "amber"
-                      ? "glowEuWest"
-                      : "glowApac"
+                      ? "glowEuWestLight"
+                      : "glowApacLight"
                   })`}
                   className="animate-pulse"
                 />
@@ -222,30 +222,36 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
                   cx={node.x}
                   cy={node.y}
                   r={isSelected ? "9" : "7"}
-                  fill="none"
+                  fill="#ffffff"
                   stroke={
                     node.statusColor === "emerald"
                       ? "#10b981"
                       : node.statusColor === "amber"
                       ? "#f59e0b"
-                      : "#818cf8"
+                      : "#6366f1"
                   }
-                  strokeWidth={isSelected ? "2" : "1.5"}
+                  strokeWidth={isSelected ? "2.5" : "2"}
                 />
                 {/* Center Core Dot */}
                 <circle
                   cx={node.x}
                   cy={node.y}
-                  r="3.5"
-                  fill="#ffffff"
+                  r="4"
+                  fill={
+                    node.statusColor === "emerald"
+                      ? "#10b981"
+                      : node.statusColor === "amber"
+                      ? "#f59e0b"
+                      : "#6366f1"
+                  }
                 />
                 {/* Region Label Pill */}
                 <text
                   x={node.x}
-                  y={node.y + 18}
-                  fill={isSelected ? "#ffffff" : "#94a3b8"}
+                  y={node.y + 19}
+                  fill={isSelected ? "#0f172a" : "#475569"}
                   fontSize="10"
-                  fontWeight="600"
+                  fontWeight="700"
                   textAnchor="middle"
                 >
                   {node.name.split(" ")[0]} ({node.volumePct})
@@ -256,24 +262,24 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
         </svg>
 
         {/* Selected Node Real-time Telemetry Flyout */}
-        <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur border border-slate-800 rounded-lg px-3 py-2 text-xs flex items-center gap-3 shadow-md">
+        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur border border-slate-200 rounded-lg px-3 py-2 text-xs flex items-center gap-3 shadow-md text-slate-800">
           <div className="flex items-center gap-2">
             <span
-              className={`h-2 w-2 rounded-full ${
+              className={`h-2.5 w-2.5 rounded-full ${
                 selectedNode.statusColor === "emerald"
-                  ? "bg-emerald-400"
+                  ? "bg-emerald-500 ring-2 ring-emerald-100"
                   : selectedNode.statusColor === "amber"
-                  ? "bg-amber-400"
-                  : "bg-indigo-400"
+                  ? "bg-amber-500 ring-2 ring-amber-100"
+                  : "bg-indigo-500 ring-2 ring-indigo-100"
               }`}
             />
-            <span className="font-semibold text-slate-200">{selectedNode.name}</span>
+            <span className="font-bold text-slate-900">{selectedNode.name}</span>
           </div>
-          <span className="text-slate-500">|</span>
-          <span className="text-slate-400 font-mono text-[11px]">{selectedNode.eventsPerSec}</span>
-          <span className="text-slate-500">|</span>
-          <span className="text-emerald-400 text-[11px] font-medium flex items-center gap-1">
-            <Lock className="h-2.5 w-2.5" />
+          <span className="text-slate-300">|</span>
+          <span className="text-slate-600 font-mono text-[11px] font-semibold">{selectedNode.eventsPerSec}</span>
+          <span className="text-slate-300">|</span>
+          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1">
+            <Lock className="h-3 w-3" />
             {selectedNode.privacyMode}
           </span>
         </div>
@@ -289,19 +295,19 @@ export function ThreatMap({ events, detections }: ThreatMapProps) {
               onClick={() => setSelectedNode(node)}
               className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
                 isSelected
-                  ? "bg-slate-800/80 border-slate-700 shadow-xs"
-                  : "bg-slate-950/50 border-slate-800/60 hover:bg-slate-900/60 hover:border-slate-700/60"
+                  ? "bg-indigo-50/70 border-indigo-200 shadow-xs"
+                  : "bg-slate-50 border-slate-200/80 hover:bg-slate-100/80"
               }`}
             >
               <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-200">{node.name}</span>
-                <span className="font-mono text-[11px] font-bold text-indigo-400">
+                <span className="font-bold text-slate-800">{node.name}</span>
+                <span className="font-mono text-[11px] font-bold text-indigo-600">
                   {node.volumePct}
                 </span>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-400">
+              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
                 <span>{node.hub}</span>
-                <span className="font-mono text-[10px] text-slate-500">{node.eventsPerSec}</span>
+                <span className="font-mono text-[10px] text-slate-400">{node.eventsPerSec}</span>
               </div>
             </button>
           );

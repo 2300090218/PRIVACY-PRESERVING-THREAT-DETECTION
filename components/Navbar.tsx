@@ -174,22 +174,22 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-slate-900/95 backdrop-blur border-b border-slate-800/80 px-6 py-3 flex items-center justify-between shadow-sm">
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-xs">
         {/* Left: Branding & Subtitle */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-lg bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center shadow-xs">
+          <div className="h-9 w-9 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200">
             <Shield className="h-5 w-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-white tracking-tight">
+              <h1 className="text-base font-bold text-slate-900 tracking-tight">
                 PRIVACY-PRESERVING THREAT DETECTION
               </h1>
-              <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+              <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                 Enterprise v1.0
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Collaborative Federated IDS with PII Sanitization & Real-Time Alerts
             </p>
           </div>
@@ -198,7 +198,7 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
         {/* Right: Consolidated Environment Indicator, Run Test Action & Single Auth Button */}
         <div className="flex items-center gap-3">
           {/* Consolidated Single Environment Indicator */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
             <span>Demo Environment</span>
           </div>
@@ -209,8 +209,8 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
             disabled={isLoadingToggle}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all shadow-xs active:scale-[0.98] disabled:opacity-60 cursor-pointer ${
               isMonitoring
-                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30"
-                : "bg-indigo-600 hover:bg-indigo-500 text-white"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200"
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"
             }`}
             title={
               isMonitoring
@@ -222,9 +222,9 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
               <RefreshCw className="h-3.5 w-3.5 animate-spin" />
             ) : isMonitoring ? (
               <span className="flex items-center gap-1.5">
-                <Radio className="h-3.5 w-3.5 animate-pulse text-emerald-400" />
+                <Radio className="h-3.5 w-3.5 animate-pulse text-emerald-600" />
                 <span>Monitoring Active</span>
-                <span className="font-mono text-[10px] text-emerald-300 bg-emerald-950/60 px-1 rounded">
+                <span className="font-mono text-[10px] text-emerald-800 bg-emerald-100 px-1 rounded">
                   #{scanCount}
                 </span>
               </span>
@@ -238,17 +238,17 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
 
           {/* Single Header Top-Right Auth Button */}
           {currentUser ? (
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-800 text-slate-300 border border-slate-700">
-                <User className="h-3.5 w-3.5 text-indigo-400" />
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                <User className="h-3.5 w-3.5 text-indigo-600" />
                 <span className="font-mono text-[11px] max-w-[120px] truncate">{currentUser}</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-semibold uppercase tracking-wider">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold uppercase tracking-wider border border-indigo-200">
                   {currentRole}
                 </span>
               </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-200 transition-colors cursor-pointer"
                 title="Sign Out of Operations Console"
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -258,9 +258,9 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
           ) : (
             <Link
               href="/login"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors shadow-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-colors shadow-xs"
             >
-              <LogIn className="h-3.5 w-3.5 text-slate-400" />
+              <LogIn className="h-3.5 w-3.5 text-slate-500" />
               <span>Sign In</span>
             </Link>
           )}
