@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
+  Sparkles,
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
@@ -31,6 +32,7 @@ export default function ForgotPasswordPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [receivedOtp, setReceivedOtp] = useState<string | null>(null);
 
   // Status & error messages
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -61,7 +63,13 @@ export default function ForgotPasswordPage() {
 
       const data = await res.json().catch(() => ({}));
 
-      setSuccessMessage("Password reset code dispatched to your Gmail address.");
+      if (data.demo_otp || data.test_otp) {
+        const code = String(data.demo_otp || data.test_otp);
+        setReceivedOtp(code);
+        setResetCode(code);
+      }
+
+      setSuccessMessage(data.message || "Password reset code dispatched to your Gmail address.");
       setStep("SUBMIT_NEW_PASSWORD");
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to submit request.");
@@ -116,7 +124,7 @@ export default function ForgotPasswordPage() {
       setSuccessMessage("Password updated successfully! Redirecting to login...");
       setTimeout(() => {
         router.push("/login");
-      }, 2000);
+      }, 1500);
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to reset password.");
     } finally {
@@ -126,15 +134,17 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-800 via-indigo-900 to-slate-900 p-6 text-white text-center relative overflow-hidden">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md mb-3">
-            <KeyRound className="w-6 h-6 text-indigo-300" />
+        <div className="p-6 text-center border-b border-slate-100 bg-white">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white mb-3 shadow-md shadow-indigo-100">
+            <KeyRound className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Reset Password</h1>
-          <p className="text-xs text-slate-300 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Reset Password
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
             Privacy-Preserving Threat Detection Platform
           </p>
         </div>
@@ -143,21 +153,21 @@ export default function ForgotPasswordPage() {
         <div className="p-6 sm:p-8">
           {/* Notifications */}
           {statusMessage && (
-            <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <RefreshCw className="w-4 h-4 animate-spin shrink-0 text-indigo-600" />
               <span>{statusMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {errorMessage && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
@@ -166,8 +176,8 @@ export default function ForgotPasswordPage() {
           {/* STEP 1: Enter Email */}
           {step === "REQUEST_CODE" && (
             <form onSubmit={handleRequestCode} className="space-y-4">
-              <p className="text-xs text-slate-600">
-                Enter your account email address. We will dispatch a 6-digit password-reset verification code to your Gmail address.
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Enter your account email address. We will dispatch a 6-digit password-reset verification code.
               </p>
 
               <div>
@@ -211,8 +221,29 @@ export default function ForgotPasswordPage() {
           {step === "SUBMIT_NEW_PASSWORD" && (
             <form onSubmit={handleResetSubmit} className="space-y-4">
               <p className="text-xs text-slate-600">
-                Enter the 6-digit reset code received at <span className="font-mono font-bold text-slate-800">{email}</span> and choose a new password.
+                Enter the 6-digit reset code received for <span className="font-mono font-bold text-slate-800">{email}</span> and choose a new password.
               </p>
+
+              {receivedOtp && (
+                <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-1.5 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-900">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Demo Mode Reset Code</span>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="bg-white px-3 py-1 rounded border border-indigo-200 font-mono text-base font-extrabold text-indigo-700 tracking-wider">
+                      {receivedOtp}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setResetCode(receivedOtp)}
+                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition-colors"
+                    >
+                      Auto-Fill
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">

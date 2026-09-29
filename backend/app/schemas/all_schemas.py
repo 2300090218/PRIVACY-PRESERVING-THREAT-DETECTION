@@ -59,6 +59,8 @@ class LoginResponse(BaseModel):
     organization_id: Optional[str] = None
     message: Optional[str] = None
     email_verified: Optional[bool] = None
+    demo_otp: Optional[str] = None
+    test_otp: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

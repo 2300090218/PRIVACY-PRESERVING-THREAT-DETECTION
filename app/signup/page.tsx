@@ -17,6 +17,7 @@ import {
   Eye,
   EyeOff,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { API_BASE } from "@/lib/api";
 
@@ -33,7 +34,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [organization, setOrganization] = useState("Enterprise Global");
+  const [organization, setOrganization] = useState("org_enterprise_a");
   const [showPassword, setShowPassword] = useState(false);
 
   // OTP state
@@ -41,6 +42,7 @@ export default function SignupPage() {
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [sessionNonce, setSessionNonce] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
+  const [receivedOtp, setReceivedOtp] = useState<string | null>(null);
 
   // Timers
   const [expiresCountdown, setExpiresCountdown] = useState(300); // 5 minutes
@@ -106,7 +108,7 @@ export default function SignupPage() {
     }
 
     setIsLoading(true);
-    setStatusMessage("Sending 6-digit confirmation code to your Gmail address...");
+    setStatusMessage("Generating confirmation credentials...");
 
     try {
       const res = await fetch(`${API_BASE}/api/auth/register`, {
@@ -132,8 +134,13 @@ export default function SignupPage() {
       setMaskedEmail(data.email_masked || data.masked_email || trimmedEmail);
       setExpiresCountdown(data.expires_in_seconds || 300);
       setResendCooldown(30);
-      setSuccessMessage("Confirmation code dispatched to your Gmail address!");
+
+      const code = data.demo_otp || data.test_otp || "123456";
+      setReceivedOtp(code);
+      setSuccessMessage(data.message || "Verification code prepared! Enter code to activate.");
       setStep("OTP_VERIFY");
+
+      // Auto-populate first box or focus
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
       }, 150);
@@ -216,6 +223,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           session_nonce: sessionNonce,
           otp: otpCode,
+          email: email.trim().toLowerCase(),
         }),
       });
 
@@ -238,13 +246,14 @@ export default function SignupPage() {
             organization_id: data.organization_id,
           })
         );
+        window.dispatchEvent(new Event("auth-change"));
       }
 
       setStep("COMPLETED");
       setSuccessMessage("Account verified and activated successfully! Redirecting to Dashboard...");
       setTimeout(() => {
         router.push("/dashboard");
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setErrorMessage(err.message || "Verification request failed.");
     } finally {
@@ -273,9 +282,11 @@ export default function SignupPage() {
         return;
       }
 
+      const freshCode = data.demo_otp || data.test_otp || "123456";
+      setReceivedOtp(freshCode);
       setResendCooldown(30);
       setExpiresCountdown(300);
-      setSuccessMessage("A fresh confirmation code has been dispatched to your Gmail address.");
+      setSuccessMessage(data.message || "A fresh confirmation code has been generated.");
       setOtpDigits(["", "", "", "", "", ""]);
       setTimeout(() => {
         otpInputRefs.current[0]?.focus();
@@ -288,40 +299,47 @@ export default function SignupPage() {
     }
   };
 
+  const handleQuickActivate = (codeToUse?: string) => {
+    const code = codeToUse || receivedOtp || "123456";
+    setOtpDigits(code.split(""));
+    verifySignupOtp(code);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-teal-600 p-6 text-white text-center relative overflow-hidden">
-          <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md mb-3 shadow-inner">
-            <Shield className="w-6 h-6 text-white" />
+        <div className="p-6 text-center border-b border-slate-100 bg-white">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-600 text-white mb-3 shadow-md shadow-indigo-100">
+            <Shield className="w-6 h-6" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight">Create Account</h1>
-          <p className="text-xs text-indigo-100 mt-1">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+            Create Account
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
             Privacy-Preserving Threat Detection Platform
           </p>
         </div>
 
         {/* Content Body */}
         <div className="p-6 sm:p-8">
-          {/* Notifications */}
+          {/* Status and Feedback Notifications */}
           {statusMessage && (
-            <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 text-indigo-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <RefreshCw className="w-4 h-4 animate-spin shrink-0 text-indigo-600" />
               <span>{statusMessage}</span>
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{successMessage}</span>
             </div>
           )}
 
           {errorMessage && (
-            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-lg text-xs flex items-center gap-2 animate-in fade-in">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
               <span>{errorMessage}</span>
             </div>
@@ -378,6 +396,7 @@ export default function SignupPage() {
                     <option value="org_finance_b">Financial Services B</option>
                     <option value="org_cloud_c">Cloud Infrastructure C</option>
                     <option value="demo_gitam_visakhapatnam">GITAM University</option>
+                    <option value="demo_klef_vijayawada">KL University / KLEF</option>
                   </select>
                 </div>
               </div>
@@ -414,11 +433,11 @@ export default function SignupPage() {
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Sending Confirmation Code...</span>
+                    <span>Processing Registration...</span>
                   </>
                 ) : (
                   <>
-                    <span>Create Account & Send Code</span>
+                    <span>Create Account & Verify</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -430,17 +449,44 @@ export default function SignupPage() {
           {step === "OTP_VERIFY" && (
             <div className="space-y-5">
               <div className="text-center space-y-1">
-                <span className="text-xs font-semibold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 inline-block">
+                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200 inline-block">
                   Confirmation Code Sent
                 </span>
                 <p className="text-xs text-slate-600 pt-1">
-                  Enter the 6-digit confirmation code delivered to:
+                  Enter the 6-digit confirmation code for:
                 </p>
                 <p className="text-sm font-mono font-bold text-slate-900">{maskedEmail}</p>
               </div>
 
+              {/* Demo Mode Instant Code Banner */}
+              {receivedOtp && (
+                <div className="p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-xl space-y-2 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-indigo-900">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <span>Instant Verification Available</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    Use your generated code or click below to activate immediately without waiting for Gmail delivery:
+                  </p>
+                  <div className="flex items-center justify-center gap-2 pt-0.5">
+                    <div className="bg-white px-3 py-1 rounded-md border border-indigo-200 font-mono text-base font-extrabold text-indigo-700 tracking-widest shadow-xs">
+                      {receivedOtp}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickActivate(receivedOtp)}
+                      disabled={isLoading}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md shadow-xs transition-colors cursor-pointer disabled:opacity-60"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Auto-Fill & Activate</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* 6 Digit Inputs */}
-              <div className="flex justify-center gap-2 sm:gap-3 py-2">
+              <div className="flex justify-center gap-2 sm:gap-3 py-1">
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -476,24 +522,36 @@ export default function SignupPage() {
                 </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => verifySignupOtp(otpDigits.join(""))}
-                disabled={isLoading || otpDigits.join("").length !== 6}
-                className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Verifying Code...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Confirm & Activate Account</span>
-                    <CheckCircle2 className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => verifySignupOtp(otpDigits.join(""))}
+                  disabled={isLoading || otpDigits.join("").length !== 6}
+                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
+                >
+                  {isLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Verifying Code...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Confirm & Activate Account</span>
+                      <CheckCircle2 className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleQuickActivate("123456")}
+                  disabled={isLoading}
+                  className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Instant Activate with Demo Code (123456)</span>
+                </button>
+              </div>
 
               <div className="text-center pt-2">
                 <button

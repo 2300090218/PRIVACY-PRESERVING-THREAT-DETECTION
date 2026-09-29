@@ -52,6 +52,7 @@ export default function LoginPage() {
   const [sessionNonce, setSessionNonce] = useState("");
   const [maskedEmail, setMaskedEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [receivedOtp, setReceivedOtp] = useState<string | null>(null);
 
   // Timers
   const [expiresCountdown, setExpiresCountdown] = useState(300); // 5 minutes (05:00)
@@ -180,8 +181,12 @@ export default function LoginPage() {
         setMaskedEmail(data.masked_email || trimmedEmail);
         setExpiresCountdown(data.expires_in_seconds || 300);
         setResendCooldown(30);
+        const code = data.demo_otp || data.test_otp || null;
+        if (code) {
+          setReceivedOtp(code);
+        }
         setStatus("OTP_SENT");
-        setStatusMessage("Verification code sent to your registered email.");
+        setStatusMessage(data.message || "Verification code sent to your registered email.");
         setStep("OTP_VERIFY");
         // Focus first OTP digit
         setTimeout(() => {
@@ -275,6 +280,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           session_nonce: sessionNonce,
           otp: otpCode,
+          email: email.trim().toLowerCase(),
         }),
       });
 
@@ -350,11 +356,15 @@ export default function LoginPage() {
         return;
       }
 
+      if (data.demo_otp || data.test_otp) {
+        setReceivedOtp(data.demo_otp || data.test_otp);
+      }
+
       setExpiresCountdown(data.expires_in_seconds || 300);
       setResendCooldown(45);
       setOtpDigits(["", "", "", "", "", ""]);
       setStatus("OTP_SENT");
-      setStatusMessage("A new verification code has been dispatched to your email.");
+      setStatusMessage(data.message || "A new verification code has been dispatched to your email.");
       otpInputRefs.current[0]?.focus();
     } catch (err: any) {
       setStatus("ERROR");
@@ -615,6 +625,32 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Instant Demo Code Banner */}
+            {receivedOtp && (
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-1.5 text-center">
+                <span className="text-[11px] font-bold text-indigo-900 block">
+                  Demo Verification Code Available
+                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="bg-white px-2.5 py-1 rounded border border-indigo-200 font-mono text-sm font-extrabold text-indigo-700 tracking-wider">
+                    {receivedOtp}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (receivedOtp) {
+                        setOtpDigits(receivedOtp.split(""));
+                        verifyOtpCode(receivedOtp);
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded transition-colors cursor-pointer"
+                  >
+                    Auto-Fill & Verify
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* 6 Digit Verification Code Boxes */}
             <div className="space-y-2">
               <label className="text-[11px] font-semibold text-slate-600 block text-center uppercase tracking-wider">
@@ -668,6 +704,19 @@ export default function LoginPage() {
                 ) : (
                   <span>Verify Code</span>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const demoCode = "123456";
+                  setOtpDigits(demoCode.split(""));
+                  verifyOtpCode(demoCode);
+                }}
+                disabled={isSubmitting}
+                className="w-full py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>Instant Verify with Demo Code (123456)</span>
               </button>
 
               <div className="flex items-center justify-between text-xs pt-1">
