@@ -27,15 +27,36 @@ async def sse_dashboard_stream():
     )
 
 @router.websocket("/dashboard")
-async def dashboard_websocket(websocket: WebSocket):
+@router.websocket("/threats")
+async def dashboard_websocket(
+    websocket: WebSocket,
+    token: str = None,
+    tenant: str = None,
+    organization_id: str = None
+):
     """
     Real-time bidirectional WebSocket connection for cybersecurity dashboard.
-    Receives detection alerts, risk score changes, and agent status updates.
+    Receives detection alerts, risk score changes, and agent status updates with tenant isolation.
     """
-    await ws_manager.connect(websocket)
+    selected_org = tenant or organization_id
+    user_info = None
+    if token:
+        try:
+            from backend.app.security.authentication import decode_access_token
+            payload = decode_access_token(token)
+            if payload:
+                user_info = {
+                    "username": payload.get("sub"),
+                    "role": payload.get("role"),
+                    "organization_id": payload.get("organization_id")
+                }
+                selected_org = selected_org or payload.get("organization_id")
+        except Exception:
+            pass
+
+    await ws_manager.connect(websocket, organization_id=selected_org, user_info=user_info)
     try:
         while True:
-            # Listen for inbound heartbeat pings or query messages from dashboard
             text = await websocket.receive_text()
             if text == "ping":
                 await websocket.send_text("pong")
@@ -45,11 +66,10 @@ async def dashboard_websocket(websocket: WebSocket):
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "data": {
                         "status": "HEALTHY",
+                        "organization_id": selected_org or "ALL",
                         "active_connections": ws_manager.connection_count()
                     }
                 })
-    except WebSocketDisconnect:
-        ws_manager.disconnect(websocket)
-    except Exception:
+    except (WebSocketDisconnect, Exception):
         ws_manager.disconnect(websocket)
 

@@ -136,8 +136,15 @@ class Settings(BaseSettings):
     FL_MIN_CLIENTS: int = 3
     FL_ROUNDS: int = 5
 
+    # Traffic Simulator
+    ENABLE_SIMULATOR: bool = True
+    SIMULATOR_INTERVAL_SECONDS: float = 3.0
+
     # Operational Mode: LIVE, TEST, OFFLINE
     OPERATIONAL_MODE: str = "TEST"
+
+    # ALLOWED_ORIGINS alias for CORS_ORIGINS
+    ALLOWED_ORIGINS: Optional[Union[List[str], str]] = None
 
     # Retention (days)
     EVENT_RETENTION_DAYS: int = 90
@@ -145,5 +152,25 @@ class Settings(BaseSettings):
     AUDIT_RETENTION_DAYS: int = 365
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def model_post_init(self, __context: Any) -> None:
+        """Fail fast in production if security keys are default values."""
+        if self.ALLOWED_ORIGINS:
+            self.CORS_ORIGINS = self.assemble_cors_origins(self.ALLOWED_ORIGINS)
+        if self.APP_ENV == "production":
+            insecure_defaults = [
+                "threat-detection-dev-secret-key-super-secure-32chars",
+                "threat-detection-jwt-secret-dev-key-32chars",
+                "privacy-salt-isolated-dev-token-hmac-salt"
+            ]
+            if (
+                self.SECRET_KEY in insecure_defaults
+                or self.JWT_SECRET in insecure_defaults
+                or self.PRIVACY_SALT in insecure_defaults
+            ):
+                raise ValueError(
+                    "FATAL SECURITY CONFIGURATION: SECRET_KEY, JWT_SECRET, and PRIVACY_SALT "
+                    "must be configured via environment variables with strong random values in production!"
+                )
 
 settings = Settings()
