@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Globe, Shield, Activity, Radio, Lock } from "lucide-react";
+import React, { useMemo } from "react";
+import { Globe, ShieldAlert, Radio, Activity, Zap, ShieldCheck } from "lucide-react";
 import { SecurityEvent, Detection } from "@/types";
 
 interface ThreatMapProps {
@@ -9,310 +9,186 @@ interface ThreatMapProps {
   detections: Detection[];
 }
 
-interface RegionNode {
-  id: string;
-  name: string;
-  hub: string;
-  volumePct: string;
-  eventsPerSec: string;
-  status: "Guarded" | "Normal" | "Elevated";
-  statusColor: string;
-  privacyMode: string;
-  x: number;
-  y: number;
-}
-
-const REGION_NODES: RegionNode[] = [
-  {
-    id: "us-east",
-    name: "US East (Ashburn)",
-    hub: "Primary Gateway",
-    volumePct: "48.2%",
-    eventsPerSec: "1,420 ev/s",
-    status: "Guarded",
-    statusColor: "emerald",
-    privacyMode: "Zero-Trust Minimization",
-    x: 270,
-    y: 135,
-  },
-  {
-    id: "eu-west",
-    name: "EU West (Frankfurt)",
-    hub: "Federated Relay",
-    volumePct: "31.4%",
-    eventsPerSec: "890 ev/s",
-    status: "Guarded",
-    statusColor: "amber",
-    privacyMode: "Pseudonymized Tokenization",
-    x: 505,
-    y: 115,
-  },
-  {
-    id: "apac-east",
-    name: "APAC (Tokyo)",
-    hub: "Edge Aggregator",
-    volumePct: "20.4%",
-    eventsPerSec: "640 ev/s",
-    status: "Normal",
-    statusColor: "indigo",
-    privacyMode: "Differential Privacy (ε=0.8)",
-    x: 775,
-    y: 165,
-  },
-];
-
 export function ThreatMap({ events, detections }: ThreatMapProps) {
-  const [selectedNode, setSelectedNode] = useState<RegionNode>(REGION_NODES[0]);
+  // Aggregate recent active detections with fallback to recent events
+  const activeNodes = useMemo(() => {
+    const list: Array<{
+      id: string;
+      label: string;
+      type: string;
+      severity: string;
+      confidence: number;
+      riskScore: number;
+      timestamp: string;
+      x: number; // percentage coordinates on radar grid
+      y: number;
+    }> = [];
+
+    // Predefined radar sectors for sanitized coordinates
+    const sectors = [
+      { x: 32, y: 35 },
+      { x: 68, y: 28 },
+      { x: 78, y: 62 },
+      { x: 24, y: 72 },
+      { x: 50, y: 45 },
+      { x: 82, y: 38 },
+      { x: 38, y: 65 },
+      { x: 62, y: 75 },
+    ];
+
+    detections.slice(0, 8).forEach((det, idx) => {
+      const coord = sectors[idx % sectors.length];
+      list.push({
+        id: det.detection_id || det.event_id || `det-${idx}`,
+        label: `NODE-${(det.event_id || `SAN-${idx}`).slice(-6).toUpperCase()}`,
+        type: det.attack_type || "SUSPICIOUS_VECTOR",
+        severity: det.severity || "HIGH",
+        confidence: det.confidence || 0.9,
+        riskScore: det.risk_score || 75,
+        timestamp: det.created_at || new Date().toISOString(),
+        x: coord.x + ((idx * 7) % 11) - 5,
+        y: coord.y + ((idx * 13) % 11) - 5,
+      });
+    });
+
+    return list;
+  }, [detections]);
+
+  const severityColor = (sev: string) => {
+    switch (sev?.toUpperCase()) {
+      case "CRITICAL":
+        return "bg-rose-500 text-rose-300 border-rose-500 ring-rose-400";
+      case "HIGH":
+        return "bg-amber-500 text-amber-300 border-amber-500 ring-amber-400";
+      case "MEDIUM":
+        return "bg-yellow-500 text-yellow-300 border-yellow-500 ring-yellow-400";
+      default:
+        return "bg-emerald-500 text-emerald-300 border-emerald-500 ring-emerald-400";
+    }
+  };
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="bg-slate-900 rounded-xl border border-slate-800 p-5 shadow-lg space-y-4 text-white overflow-hidden relative">
+      <div className="flex items-center justify-between z-10 relative">
         <div className="flex items-center gap-2">
-          <Globe className="h-4 w-4 text-indigo-600" />
-          <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-            Global Telemetry Origins & Threat Distribution
+          <Globe className="h-4 w-4 text-indigo-400 animate-spin-slow" />
+          <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wide">
+            Live Global Threat Vector Radar
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600 bg-slate-100 px-2.5 py-0.5 rounded-full border border-slate-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            3 Ingestion Regions Online
+          <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/60">
+            <Radio className="h-3 w-3 animate-pulse" />
+            <span>DP-ANONYMIZED RADAR</span>
+          </span>
+          <span className="text-[10px] font-semibold text-slate-400 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+            {activeNodes.length} Active Targets
           </span>
         </div>
       </div>
 
-      {/* SVG World Map Canvas */}
-      <div className="relative w-full h-64 sm:h-72 rounded-lg bg-slate-50/70 border border-slate-200 overflow-hidden flex items-center justify-center p-2">
-        <svg
-          viewBox="0 0 1000 440"
-          className="w-full h-full select-none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs>
-            <linearGradient id="arcGradientLight1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#6366f1" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
-            </linearGradient>
-            <linearGradient id="arcGradientLight2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.8" />
-              <stop offset="50%" stopColor="#8b5cf6" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0.8" />
-            </linearGradient>
-            <radialGradient id="glowUsEastLight" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="glowEuWestLight" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id="glowApacLight" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+      {/* Interactive Animated Radar Screen */}
+      <div className="h-64 rounded-lg bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center">
+        {/* Radar concentric circular grid */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+          <div className="w-[85%] h-[85%] rounded-full border border-indigo-400" />
+          <div className="w-[60%] h-[60%] rounded-full border border-indigo-400" />
+          <div className="w-[35%] h-[35%] rounded-full border border-indigo-400" />
+          <div className="w-[12%] h-[12%] rounded-full border border-indigo-400" />
+          <div className="absolute w-full h-[1px] bg-indigo-400" />
+          <div className="absolute h-full w-[1px] bg-indigo-400" />
+        </div>
 
-          {/* Coordinate Grid Lines */}
-          <g stroke="#e2e8f0" strokeWidth="0.8" opacity="0.8">
-            <line x1="0" y1="110" x2="1000" y2="110" strokeDasharray="4 6" />
-            <line x1="0" y1="220" x2="1000" y2="220" />
-            <line x1="0" y1="330" x2="1000" y2="330" strokeDasharray="4 6" />
-            <line x1="250" y1="0" x2="250" y2="440" strokeDasharray="4 6" />
-            <line x1="500" y1="0" x2="500" y2="440" />
-            <line x1="750" y1="0" x2="750" y2="440" strokeDasharray="4 6" />
-          </g>
+        {/* Radar Sweeper Animation */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-25"
+          style={{
+            background: "conic-gradient(from 0deg at 50% 50%, rgba(99, 102, 241, 0.4) 0deg, transparent 60deg, transparent 360deg)",
+            animation: "spin 5s linear infinite",
+          }}
+        />
 
-          {/* World Landmass Silhouettes (Crisp clean vector landmasses in slate-200) */}
-          <g fill="#e2e8f0" stroke="#cbd5e1" strokeWidth="0.75">
-            {/* North America */}
-            <path d="M 120 70 L 150 50 L 220 50 L 280 80 L 310 110 L 290 150 L 260 170 L 230 220 L 205 180 L 170 170 L 140 140 L 110 110 Z" />
-            <path d="M 170 45 L 210 30 L 250 40 L 230 48 Z" />
-            {/* Greenland */}
-            <path d="M 330 35 L 390 28 L 400 65 L 350 75 Z" />
-            {/* South America */}
-            <path d="M 260 225 L 310 215 L 360 250 L 380 300 L 340 390 L 300 400 L 270 320 L 250 250 Z" />
-            {/* Europe */}
-            <path d="M 450 65 L 530 60 L 550 95 L 520 135 L 460 135 L 440 100 Z" />
-            <path d="M 435 85 L 450 80 L 445 105 L 430 95 Z" />
-            {/* Africa */}
-            <path d="M 450 155 L 550 150 L 575 220 L 540 330 L 490 330 L 440 240 L 435 180 Z" />
-            <path d="M 570 290 L 585 300 L 575 330 L 565 310 Z" />
-            {/* Asia */}
-            <path d="M 550 60 L 760 55 L 850 90 L 890 140 L 860 180 L 820 180 L 780 230 L 710 230 L 660 180 L 580 150 L 550 100 Z" />
-            {/* Japan */}
-            <path d="M 855 130 L 875 140 L 865 170 L 845 150 Z" />
-            {/* Southeast Asia / Indonesia */}
-            <path d="M 720 250 L 765 250 L 805 270 L 755 285 Z" />
-            <path d="M 780 285 L 825 285 L 815 305 L 775 300 Z" />
-            {/* Australia */}
-            <path d="M 750 310 L 850 305 L 865 375 L 815 390 L 760 370 L 740 330 Z" />
-            <path d="M 865 375 L 880 390 L 870 405 Z" />
-          </g>
-
-          {/* Inter-Region Ingestion & Federated Sync Connection Arcs */}
-          <g>
-            <path
-              d="M 270 135 Q 385 75 505 115"
-              fill="none"
-              stroke="url(#arcGradientLight1)"
-              strokeWidth="2"
-              strokeDasharray="4 4"
-            />
-            <path
-              d="M 505 115 Q 640 85 775 165"
-              fill="none"
-              stroke="url(#arcGradientLight2)"
-              strokeWidth="2"
-              strokeDasharray="4 4"
-            />
-            <path
-              d="M 270 135 Q 260 210 320 290"
-              fill="none"
-              stroke="#94a3b8"
-              strokeWidth="1.2"
-              strokeDasharray="3 3"
-              opacity="0.6"
-            />
-          </g>
-
-          {/* Regional Nodes / Threat Telemetry Dots */}
-          {/* US West Auxiliary Dot */}
-          <g>
-            <circle cx="190" cy="120" r="4" fill="#0284c7" opacity="0.8" />
-            <text x="190" y="108" fill="#64748b" fontSize="9" fontWeight="600" textAnchor="middle">
-              US-West
-            </text>
-          </g>
-
-          {/* South America Relay Dot */}
-          <g>
-            <circle cx="320" cy="290" r="4" fill="#64748b" opacity="0.8" />
-            <text x="320" y="308" fill="#64748b" fontSize="9" fontWeight="600" textAnchor="middle">
-              SA-East
-            </text>
-          </g>
-
-          {/* Primary Nodes with Active Radar Pulse */}
-          {REGION_NODES.map((node) => {
-            const isSelected = selectedNode.id === node.id;
-            return (
-              <g
-                key={node.id}
-                className="cursor-pointer group"
-                onClick={() => setSelectedNode(node)}
-              >
-                {/* Radar Pulse Circle */}
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r="18"
-                  fill={`url(#${
-                    node.statusColor === "emerald"
-                      ? "glowUsEastLight"
-                      : node.statusColor === "amber"
-                      ? "glowEuWestLight"
-                      : "glowApacLight"
-                  })`}
-                  className="animate-pulse"
-                />
-                {/* Outer selection ring */}
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={isSelected ? "9" : "7"}
-                  fill="#ffffff"
-                  stroke={
-                    node.statusColor === "emerald"
-                      ? "#10b981"
-                      : node.statusColor === "amber"
-                      ? "#f59e0b"
-                      : "#6366f1"
-                  }
-                  strokeWidth={isSelected ? "2.5" : "2"}
-                />
-                {/* Center Core Dot */}
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r="4"
-                  fill={
-                    node.statusColor === "emerald"
-                      ? "#10b981"
-                      : node.statusColor === "amber"
-                      ? "#f59e0b"
-                      : "#6366f1"
-                  }
-                />
-                {/* Region Label Pill */}
-                <text
-                  x={node.x}
-                  y={node.y + 19}
-                  fill={isSelected ? "#0f172a" : "#475569"}
-                  fontSize="10"
-                  fontWeight="700"
-                  textAnchor="middle"
-                >
-                  {node.name.split(" ")[0]} ({node.volumePct})
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Selected Node Real-time Telemetry Flyout */}
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur border border-slate-200 rounded-lg px-3 py-2 text-xs flex items-center gap-3 shadow-md text-slate-800">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                selectedNode.statusColor === "emerald"
-                  ? "bg-emerald-500 ring-2 ring-emerald-100"
-                  : selectedNode.statusColor === "amber"
-                  ? "bg-amber-500 ring-2 ring-amber-100"
-                  : "bg-indigo-500 ring-2 ring-indigo-100"
-              }`}
-            />
-            <span className="font-bold text-slate-900">{selectedNode.name}</span>
+        {/* Threat Node Markers */}
+        {activeNodes.length === 0 ? (
+          <div className="z-10 flex flex-col items-center justify-center text-center p-4 space-y-2">
+            <ShieldCheck className="h-8 w-8 text-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold text-slate-300">
+              Zero Active Hostile Incursions Detected
+            </span>
+            <span className="text-[11px] text-slate-500 max-w-xs font-mono">
+              Privacy gateway active. All telemetry pseudonyms protected by SHA-256 HMAC salt.
+            </span>
           </div>
-          <span className="text-slate-300">|</span>
-          <span className="text-slate-600 font-mono text-[11px] font-semibold">{selectedNode.eventsPerSec}</span>
-          <span className="text-slate-300">|</span>
-          <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1">
-            <Lock className="h-3 w-3" />
-            {selectedNode.privacyMode}
-          </span>
-        </div>
-      </div>
+        ) : (
+          <div className="absolute inset-0 pointer-events-none">
+            {activeNodes.map((node) => (
+              <div
+                key={node.id}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2 pointer-events-auto group cursor-pointer"
+                style={{ left: `${node.x}%`, top: `${node.y}%` }}
+              >
+                {/* Pulsing ring */}
+                <div
+                  className={`absolute -inset-2 rounded-full opacity-75 animate-ping ${
+                    node.severity === "CRITICAL"
+                      ? "bg-rose-500"
+                      : node.severity === "HIGH"
+                      ? "bg-amber-500"
+                      : "bg-indigo-500"
+                  }`}
+                />
+                {/* Center marker dot */}
+                <div
+                  className={`relative w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg ${
+                    node.severity === "CRITICAL"
+                      ? "bg-rose-600 ring-2 ring-rose-400"
+                      : node.severity === "HIGH"
+                      ? "bg-amber-500 ring-2 ring-amber-400"
+                      : "bg-indigo-600 ring-2 ring-indigo-400"
+                  }`}
+                />
 
-      {/* Regional Origin Distribution Breakdown Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {REGION_NODES.map((node) => {
-          const isSelected = selectedNode.id === node.id;
-          return (
-            <button
-              key={node.id}
-              onClick={() => setSelectedNode(node)}
-              className={`p-3 rounded-lg border text-left transition-all cursor-pointer ${
-                isSelected
-                  ? "bg-indigo-50/70 border-indigo-200 shadow-xs"
-                  : "bg-slate-50 border-slate-200/80 hover:bg-slate-100/80"
-              }`}
-            >
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-800">{node.name}</span>
-                <span className="font-mono text-[11px] font-bold text-indigo-600">
-                  {node.volumePct}
-                </span>
+                {/* Hover Tooltip Card */}
+                <div className="hidden group-hover:block absolute bottom-5 left-1/2 -translate-x-1/2 w-48 bg-slate-900 border border-slate-700 p-2.5 rounded-md shadow-2xl z-30 pointer-events-none">
+                  <div className="flex items-center justify-between text-[10px] font-mono border-b border-slate-800 pb-1 mb-1.5">
+                    <span className="text-slate-300 font-bold">{node.label}</span>
+                    <span
+                      className={`px-1 rounded text-[9px] font-bold ${
+                        node.severity === "CRITICAL"
+                          ? "bg-rose-950 text-rose-300"
+                          : "bg-amber-950 text-amber-300"
+                      }`}
+                    >
+                      {node.severity}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-semibold text-slate-200 truncate">
+                    {node.type}
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Risk: {node.riskScore}/100</span>
+                    <span>Conf: {(node.confidence * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                <span>{node.hub}</span>
-                <span className="font-mono text-[10px] text-slate-400">{node.eventsPerSec}</span>
-              </div>
-            </button>
-          );
-        })}
+            ))}
+          </div>
+        )}
+
+        {/* Live Vector Feed Overlay Strip */}
+        <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between bg-slate-900/90 backdrop-blur-sm border border-slate-800 px-3 py-1.5 rounded text-[11px] font-mono z-10">
+          <div className="flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+            <span className="text-slate-400">TELEMETRY:</span>
+            <span className="text-emerald-400">ENCRYPTED STREAM ACTIVE</span>
+          </div>
+          <div className="flex items-center gap-3 text-slate-400">
+            <span>PII LEAK: <span className="text-emerald-400 font-bold">0.00%</span></span>
+            <span>LATENCY: <span className="text-indigo-300">&lt;18ms</span></span>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
+

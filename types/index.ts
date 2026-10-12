@@ -35,10 +35,12 @@ export interface DetectionExplainability {
 
 export interface Detection {
   id: number;
+  detection_id?: string;
   event_id: string;
   prediction: "BENIGN" | "SUSPICIOUS" | "MALICIOUS";
   attack_type: string;
   confidence: number;
+  risk_score?: number;
   severity: Severity;
   model_version: string;
   processing_latency_ms: number;
