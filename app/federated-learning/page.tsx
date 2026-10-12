@@ -104,37 +104,36 @@ export default function FederatedLearningPage() {
   useWebSocketTelemetry(
     useCallback(
       (msg: WSEventMessage) => {
-        const roundNum = msg.data.round_number || msg.data.round || 1;
         if (msg.type === "training.started") {
           setIsTraining(true);
-          setStatusMessage(`Round ${roundNum} started across 3 edge clients (DP-FedAvg)...`);
+          setStatusMessage(`Round ${msg.data.round} started across ${msg.data.clients_selected} clients...`);
         } else if (msg.type === "training.progress") {
-          setStatusMessage(`Client ${msg.data.client_id || "edge"}: Local model training epoch 5 complete (${msg.data.progress_percent || 50}%)...`);
+          setStatusMessage(`Client ${msg.data.client_id}: Local model training in progress...`);
         } else if (msg.type === "training.completed") {
           setIsTraining(false);
           setStatusMessage(
-            `Round ${roundNum} DP-FedAvg completed! Global model evaluated: ${(msg.data.accuracy * 100).toFixed(
+            `Round ${msg.data.round} FedAvg completed! Global model evaluated: ${(msg.data.accuracy * 100).toFixed(
               2
             )}% Acc`
           );
           if (msg.data.accuracy) {
             const newPoint: TrainingRound = {
-              id: roundNum,
-              round_num: roundNum,
-              clients_selected: msg.data.participating_nodes || msg.data.clients_count || 3,
-              clients_completed: msg.data.participating_nodes || msg.data.clients_count || 3,
-              local_loss: msg.data.loss || 0.08,
-              global_loss: msg.data.loss || 0.08,
+              id: msg.data.round,
+              round_num: msg.data.round,
+              clients_selected: msg.data.clients_count || 3,
+              clients_completed: msg.data.clients_count || 3,
+              local_loss: msg.data.loss || 0.10,
+              global_loss: msg.data.loss || 0.10,
               accuracy: msg.data.accuracy,
-              precision: msg.data.precision || msg.data.accuracy,
-              recall: msg.data.recall || msg.data.accuracy,
-              f1: msg.data.f1_score || msg.data.f1 || msg.data.accuracy,
+              precision: msg.data.precision,
+              recall: msg.data.recall,
+              f1: msg.data.f1,
               training_time: msg.data.training_time || 2.1,
-              model_version: msg.data.model_version || msg.data.version || `global-v${roundNum}`,
+              model_version: msg.data.model_version || `global-v${msg.data.round}`,
               created_at: new Date().toISOString(),
             };
             setRounds((prev) => {
-              const filtered = prev.filter((r) => r.round_num !== roundNum);
+              const filtered = prev.filter((r) => r.round_num !== msg.data.round);
               return [...filtered, newPoint].sort((a, b) => a.round_num - b.round_num);
             });
           }

@@ -4,8 +4,6 @@ Privacy-Preserving Threat Detection Platform - Main FastAPI Application
 
 import uuid
 import time
-from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,7 +43,6 @@ from backend.app.api.v1.organizations import router as v1_org_router
 from backend.app.api.v1.agents import router as v1_agents_router
 from backend.app.routers.telemetry import router as telemetry_router
 from backend.app.routers.federated import router as federated_v1_router
-from backend.app.api.simulator import router as simulator_router
 
 async def initialize_platform():
     """Initializes Database schema and default seed data if not present."""
@@ -375,21 +372,8 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         print(f"[Startup] Platform initialization note: {exc}")
 
-    # Start built-in traffic simulator if enabled
-    if settings.ENABLE_SIMULATOR:
-        try:
-            from backend.app.services.traffic_simulator import traffic_simulator
-            await traffic_simulator.start()
-        except Exception as sim_exc:
-            print(f"[Startup] Traffic simulator start note: {sim_exc}")
-
     yield
     print("[Shutdown] Cleaning up platform resources...")
-    try:
-        from backend.app.services.traffic_simulator import traffic_simulator
-        await traffic_simulator.stop()
-    except Exception:
-        pass
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -450,86 +434,19 @@ async def global_exception_handler(request: Request, exc: Exception):
         }
     )
 
-# Shared WebSocket Connection Handler with Auth & Tenant Isolation
-async def handle_websocket_connection(
-    websocket: WebSocket,
-    token: Optional[str] = None,
-    tenant: Optional[str] = None,
-    organization_id: Optional[str] = None
-):
-    selected_tenant = tenant or organization_id
-    user_info = None
-    if token:
-        try:
-            from backend.app.security.authentication import decode_access_token
-            payload = decode_access_token(token)
-            if payload:
-                user_info = {
-                    "username": payload.get("sub"),
-                    "role": payload.get("role"),
-                    "organization_id": payload.get("organization_id")
-                }
-                selected_tenant = selected_tenant or payload.get("organization_id")
-        except Exception:
-            pass
-
-    await ws_manager.connect(websocket, organization_id=selected_tenant, user_info=user_info)
+# WebSocket Endpoint (backward-compatible /ws)
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await ws_manager.connect(websocket)
     try:
         while True:
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
-            elif data == "status":
-                await websocket.send_json({
-                    "type": "system.status",
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "data": {
-                        "status": "HEALTHY",
-                        "organization_id": selected_tenant or "ALL",
-                        "active_connections": ws_manager.connection_count()
-                    }
-                })
-    except (WebSocketDisconnect, Exception):
+    except WebSocketDisconnect:
         ws_manager.disconnect(websocket)
-
-@app.websocket("/ws")
-async def websocket_root(
-    websocket: WebSocket,
-    token: Optional[str] = None,
-    tenant: Optional[str] = None,
-    organization_id: Optional[str] = None
-):
-    await handle_websocket_connection(websocket, token=token, tenant=tenant, organization_id=organization_id)
-
-@app.websocket("/ws/threats")
-async def websocket_threats(
-    websocket: WebSocket,
-    token: Optional[str] = None,
-    tenant: Optional[str] = None,
-    organization_id: Optional[str] = None
-):
-    await handle_websocket_connection(websocket, token=token, tenant=tenant, organization_id=organization_id)
-
-# Direct root-level /health and /ready endpoints
-@app.get("/health")
-async def root_health():
-    return {
-        "status": "ok",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "database": True,
-        "ml_model": model_manager.model is not None,
-        "websockets": True
-    }
-
-@app.get("/ready")
-@app.get("/api/ready")
-async def root_ready():
-    is_ready = model_manager.model is not None
-    return {
-        "status": "ready" if is_ready else "initializing",
-        "ready": is_ready,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+    except Exception:
+        ws_manager.disconnect(websocket)
 
 # Include Version 1 Standard Central API Routers (/api/v1/...)
 app.include_router(api_v1_router)
@@ -554,7 +471,6 @@ app.include_router(audit_router)
 app.include_router(metrics_router)
 app.include_router(health_router)
 app.include_router(test_router)
-app.include_router(simulator_router)
 
 @app.get("/")
 async def root():

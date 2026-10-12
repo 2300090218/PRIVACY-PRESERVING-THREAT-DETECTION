@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Flame, ShieldAlert, Cpu, Filter } from "lucide-react";
 import { ClientShell } from "@/components/ClientShell";
 import { api } from "@/lib/api";
 import { Detection } from "@/types";
-import { useWebSocketTelemetry, WSEventMessage } from "@/lib/websocket";
 
 export default function ThreatsPage() {
   const [detections, setDetections] = useState<Detection[]>([]);
@@ -14,30 +13,6 @@ export default function ThreatsPage() {
   useEffect(() => {
     api.getDetections({ severity: severityFilter || undefined }).then(setDetections).catch(console.error);
   }, [severityFilter]);
-
-  useWebSocketTelemetry(
-    useCallback((msg: WSEventMessage) => {
-      if (msg.type === "detection.created" || msg.type === "threat.feed") {
-        const item = msg.data;
-        const detItem: any = {
-          id: item.id || item.detection_id,
-          event_id: item.event_id || item.id,
-          detection_id: item.detection_id || item.id,
-          prediction: item.prediction || "MALICIOUS",
-          attack_type: item.attack_type || item.threat_type || "Threat Detected",
-          confidence: item.confidence || 0.95,
-          severity: item.severity || "MEDIUM",
-          model_version: item.model_version || "global-v1",
-          processing_latency_ms: item.processing_latency_ms || 14.5,
-          created_at: item.timestamp || new Date().toISOString(),
-          rule_matches: item.rule_matches || [],
-        };
-        if (!severityFilter || detItem.severity === severityFilter) {
-          setDetections((prev) => [detItem, ...prev.filter((d) => (d.detection_id || d.event_id) !== (detItem.detection_id || detItem.event_id)).slice(0, 99)]);
-        }
-      }
-    }, [severityFilter])
-  );
 
   return (
     <ClientShell>

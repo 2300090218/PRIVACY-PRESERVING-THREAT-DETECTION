@@ -65,15 +65,10 @@ yarn-error.log*
 .vercel/
 frontend/.vercel/
 
-# Environment & Secrets (NEVER commit secrets or real credentials)
+# Environment & IDE
 .env
 .env.*
-.env*.local
 !.env.example
-!backend/.env.example
-!frontend/.env.example
-
-# IDE
 .idea/
 .vscode/
 *.swp
@@ -84,3 +79,5 @@ frontend/.vercel/
 Thumbs.db
 
 API_KEYS_AND_CREDENTIALS.docx
+.vercel
+.env*

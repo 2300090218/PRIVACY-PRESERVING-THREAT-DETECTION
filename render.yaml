@@ -6,7 +6,7 @@ services:
     dockerContext: .
     plan: free
     region: oregon
-    healthCheckPath: /health
+    healthCheckPath: /api/v1/system/health
     envVars:
       - key: APP_ENV
         value: production
@@ -20,9 +20,7 @@ services:
         generateValue: true
       - key: PRIVACY_SALT
         generateValue: true
-      - key: ALLOWED_ORIGINS
-        value: "https://privacy-preserving-threat-detection.vercel.app"
-      - key: ENABLE_SIMULATOR
-        value: "true"
+      - key: CORS_ORIGINS
+        value: '["http://localhost:3000"]'
       - key: OPERATIONAL_MODE
         value: LIVE
