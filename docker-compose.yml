@@ -36,7 +36,9 @@ services:
       - JWT_SECRET=${JWT_SECRET:-threat-detection-jwt-secret-dev-key-32chars}
       - PRIVACY_SALT=${PRIVACY_SALT:-privacy-salt-isolated-dev-token-hmac-salt}
       - CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
-      - WEBSOCKET_URL=ws://central-api:8000/api/v1/ws/dashboard
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - WEBSOCKET_URL=ws://central-api:8000/ws/threats
+      - ENABLE_SIMULATOR=true
       - OPERATIONAL_MODE=LIVE
     ports:
       - "8000:8000"
@@ -79,7 +81,7 @@ services:
       - central-api
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
-      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/api/v1/ws/dashboard
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws/threats
     ports:
       - "3000:3000"
     networks:
