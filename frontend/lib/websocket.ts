@@ -11,27 +11,33 @@ export interface WSEventMessage {
 }
 
 export function getWebSocketUrl(): string {
+  let url = "ws://127.0.0.1:8000/ws/threats";
   if (process.env.NEXT_PUBLIC_WS_URL) {
-    return process.env.NEXT_PUBLIC_WS_URL;
-  }
-  if (process.env.NEXT_PUBLIC_API_URL) {
+    url = process.env.NEXT_PUBLIC_WS_URL;
+  } else if (process.env.NEXT_PUBLIC_API_URL) {
     const apiBase = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
     if (apiBase.startsWith("https://")) {
-      return apiBase.replace(/^https:\/\//, "wss://") + "/ws";
+      url = apiBase.replace(/^https:\/\//, "wss://") + "/ws/threats";
+    } else if (apiBase.startsWith("http://")) {
+      url = apiBase.replace(/^http:\/\//, "ws://") + "/ws/threats";
     }
-    if (apiBase.startsWith("http://")) {
-      return apiBase.replace(/^http:\/\//, "ws://") + "/ws";
-    }
-  }
-  if (typeof window !== "undefined") {
-    // If running in browser and on standard localhost development
+  } else if (typeof window !== "undefined") {
     if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-      return "ws://127.0.0.1:8000/ws";
+      url = "ws://127.0.0.1:8000/ws/threats";
+    } else {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      url = `${protocol}//${window.location.host}/ws/threats`;
     }
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    return `${protocol}//${window.location.host}/ws`;
   }
-  return "ws://127.0.0.1:8000/ws";
+
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) {
+      const delimiter = url.includes("?") ? "&" : "?";
+      url = `${url}${delimiter}token=${encodeURIComponent(token)}`;
+    }
+  }
+  return url;
 }
 
 export function getSseUrl(): string {
@@ -311,4 +317,15 @@ export function useWebSocketTelemetry(onMessageReceived?: (msg: WSEventMessage) 
   }, [connect, onMessageReceived]);
 
   return { status, lastMessage };
+}
+
+export function useWebSocket(onMessageReceived?: (msg: WSEventMessage) => void) {
+  const { status, lastMessage } = useWebSocketTelemetry(onMessageReceived);
+  return {
+    status,
+    lastMessage,
+    isConnected: status === "CONNECTED",
+    isReconnecting: status === "RECONNECTING",
+    isOffline: status === "DISCONNECTED",
+  };
 }

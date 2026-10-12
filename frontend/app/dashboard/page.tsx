@@ -134,19 +134,40 @@ export default function DashboardPage() {
   const { status: wsStatus } = useWebSocketTelemetry(
     useCallback((msg: WSEventMessage) => {
       if (msg.type === "alert.created") {
-        setAlerts((prev) => [msg.data, ...prev.filter((a) => a.alert_id !== msg.data.alert_id)]);
-      } else if (msg.type === "detection.created") {
+        setAlerts((prev) => [msg.data, ...prev.filter((a) => a.alert_id !== msg.data.alert_id)].slice(0, 50));
+      } else if (msg.type === "detection.created" || msg.type === "threat.feed") {
+        const item = msg.data;
+        const detItem: any = {
+          event_id: item.event_id || item.id,
+          detection_id: item.detection_id || item.id,
+          attack_type: item.attack_type || item.threat_type || "Threat Detected",
+          severity: item.severity || "MEDIUM",
+          confidence: item.confidence || 0.95,
+          risk_score: item.risk_score || 50,
+          timestamp: item.timestamp || new Date().toISOString(),
+          source: item.source || "IP-SEC-NODE",
+          created_at: item.timestamp || new Date().toISOString(),
+          is_test: true,
+        };
         setRecentDetections((prev) => [
-          msg.data,
-          ...prev.filter((d) => d.event_id !== (msg.data.event_id || (msg.data as any).detection_id)).slice(0, 9),
-        ]);
+          detItem,
+          ...prev.filter((d) => (d.detection_id || d.event_id) !== (detItem.detection_id || detItem.event_id)),
+        ].slice(0, 50));
       } else if (msg.type === "event.received") {
         setRecentEvents((prev) => [
           msg.data,
-          ...prev.filter((e) => e.event_id !== msg.data.event_id).slice(0, 9),
-        ]);
-      } else if (msg.type === "training.completed") {
+          ...prev.filter((e) => e.event_id !== msg.data.event_id),
+        ].slice(0, 50));
+      } else if (msg.type === "training.completed" || msg.type === "model.updated") {
+        if (msg.data.accuracy) {
+          setDynamicAccuracyStr(`${(msg.data.accuracy * 100).toFixed(2)}%`);
+        }
+        if (msg.data.version || msg.data.model_version) {
+          setAccuracyBadge(msg.data.version || msg.data.model_version);
+        }
         loadAllData();
+      } else if (msg.type === "training.started") {
+        setAccuracyBadge("TRAINING IN PROGRESS");
       } else if (msg.type === "telemetry.accuracy") {
         if (msg.data.accuracy_percentage) {
           setDynamicAccuracyStr(msg.data.accuracy_percentage);

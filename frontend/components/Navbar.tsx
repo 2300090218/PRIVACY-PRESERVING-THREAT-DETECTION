@@ -242,22 +242,30 @@ export function Navbar({ wsStatus, mode, systemStatus, onTestExecuted }: NavbarP
                 ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                 : wsStatus === "RECONNECTING"
                 ? "bg-amber-50 text-amber-700 border-amber-200"
-                : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                : "bg-slate-100 text-slate-700 border-slate-200"
             }`}
             title={
               wsStatus === "CONNECTED"
-                ? "Connected via bidirectional WebSocket stream"
-                : "Live telemetry streaming via active HTTP polling fallback"
+                ? "Live WebSocket connection established"
+                : wsStatus === "RECONNECTING"
+                ? "Reconnecting to live telemetry stream..."
+                : "WebSocket offline; active fallback streaming telemetry"
             }
           >
             {wsStatus === "CONNECTED" ? (
-              <Wifi className="h-3.5 w-3.5 text-emerald-600" />
+              <Wifi className="h-3.5 w-3.5 text-emerald-600 animate-pulse" />
             ) : wsStatus === "RECONNECTING" ? (
               <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-600" />
             ) : (
-              <Activity className="h-3.5 w-3.5 text-indigo-600" />
+              <WifiOff className="h-3.5 w-3.5 text-slate-500" />
             )}
-            <span>{wsStatus === "CONNECTED" ? "WS: LIVE" : "HTTP: POLLING"}</span>
+            <span>
+              {wsStatus === "CONNECTED"
+                ? "LIVE"
+                : wsStatus === "RECONNECTING"
+                ? "RECONNECTING"
+                : "OFFLINE / POLLING"}
+            </span>
           </div>
 
           {/* System Health */}
